@@ -1,13 +1,13 @@
-# Transport Layer Export
-Transport Layer Export (TLE) is a tool for decrypting TLS-Traffic and exporting the 
+# TLExport
+TLExport (TLE) is a tool for decrypting TLS-Traffic and exporting the 
 traffic into unencrypted TCP/UDP traffic. The goal is to provide support to network analysis tools, 
 which have no or limited support for TLS decryption.
 
-This project is inspired by [Wiresharks] build in TLS Decryption, which does not support the extraction 
+This project is inspired by [Wiresharks] built in TLS Decryption, which does not support the extraction 
 of decrypted traffic into pcap files.
 
 ## Installation
-Clone the github project and execute the main.py file of the src module
+Clone the GitHub project and execute the main.py file of the src module
 
 ## Usage
 TLE requires sslkeylogs to decrypt the traffic.

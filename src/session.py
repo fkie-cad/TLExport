@@ -47,22 +47,23 @@ class Session:
 
         self.portmap = portmap
 
+    # search SSLKEYLOG for session log data
     def find_session_secrets(self):
-        self.is_handshake_secret = 0  # Only for TLS 1.3
+        is_handshake_secret = 0  # Only for TLS 1.3
         secrets = []
         for secret in self.keylog:
             if secret.client_random.lower() == self.client_random.hex().lower():
                 if secret.label == "CLIENT_HANDSHAKE_TRAFFIC_SECRET":
-                    self.is_handshake_secret += 1
+                    is_handshake_secret += 1
                 elif secret.label == "SERVER_HANDSHAKE_TRAFFIC_SECRET":
-                    self.is_handshake_secret += 2
+                    is_handshake_secret += 2
                 secrets.append(secret)
 
-        if self.is_handshake_secret < 2 and self.tls_version == TlsVersion.TLS13:
+        if is_handshake_secret < 2 and self.tls_version == TlsVersion.TLS13:
             logging.warning(f"Missing CLIENT_HANDSHAKE_TRAFFIC_SECRET")
-        elif self.is_handshake_secret < 3 and self.tls_version == TlsVersion.TLS13:
+        elif is_handshake_secret < 3 and self.tls_version == TlsVersion.TLS13:
             logging.warning(f"Missing SERVER_HANDSHAKE_TRAFFIC_SECRET")
-        elif self.is_handshake_secret == 3 and self.tls_version == TlsVersion.TLS13:
+        elif is_handshake_secret == 3 and self.tls_version == TlsVersion.TLS13:
             logging.warning(f"Missing CLIENT_HANDSHAKE_TRAFFIC_SECRET and SERVER_HANDSHAKE_TRAFFIC_SECRET")
 
         logging_string = "SSLKEYLOGFILE Content: "
@@ -72,6 +73,7 @@ class Session:
 
         return secrets
 
+    # generate session keys from SSLKEYLOG
     def generate_keys(self, tls_version, server_cipher_suite, client_random, server_random):
         cipher_suite = cipher_suite_parser.split_cipher_suite(bytes(server_cipher_suite))
 
@@ -180,7 +182,7 @@ class Session:
             self.client_port = packet.sport
             self.client_mac_addr = packet.ethernet_src
 
-    # checks if packet matches session
+    # checks if packet is in session
     def matches_session(self, packet: Packet):
         if (packet.ip_src == self.server_ip and packet.sport == self.server_port
                 and packet.ip_dst == self.client_ip and packet.dport == self.client_port):
@@ -190,7 +192,7 @@ class Session:
             return True
         return False
 
-    # add packet to session, if packet is not a duplicate
+    # add packet to session, if packet is not a duplicate, splitting into server and client packets
     def handle_packet(self, packet: Packet):
         sequence = packet.seq
 
@@ -396,7 +398,7 @@ class Session:
         else:
             return IPv4Address(ip_addr)
 
-    # extracts TLS_Records from bytestream
+    # extracts TLS_Records from packet buffers
     def get_tls_records(self):
         packet: Packet
         for packet in self.packet_buffer:

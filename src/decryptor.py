@@ -217,6 +217,7 @@ class Decryptor:
         logging.info("")
         logging.info("decrypting TLS 1.2 AEAD Record")
         ciphertext = record.binary
+        logging.info(f"Ciphertext: {ciphertext}")
         if isserver:
             key = self.server_key
             iv = self.server_iv

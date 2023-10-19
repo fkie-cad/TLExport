@@ -1,6 +1,7 @@
 from src.packet import Packet
 
 
+# data class for better handling of tls records
 class TlsRecord:
     def __init__(self, binary, metadata: list[Packet], isserver) -> None:
         self.binary = binary[5:]

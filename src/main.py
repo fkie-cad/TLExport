@@ -7,6 +7,7 @@ import src.keylog_reader as keylog_reader
 from src.dpkt_dsb import Reader
 from src.session import Session
 from src.checksums import calculate_checksum_tcp
+from src.log import set_logger
 
 server_ports = [443, 44330]
 keylog = []
@@ -31,6 +32,12 @@ def arg_parser_init():
                              "serverport <serverport:outputport>",
                         nargs="+",
                         default=["443:8080"])
+    parser.add_argument("-d", "--debug",
+                        help="enable logger and set log-level, log levels are INFO, WARNING and ERROR",
+                        default="ERROR")
+
+    parser.add_argument("-f", "--filter",
+                        help="filter log messages by file, add files you want to filter", nargs="+")
 
     return parser.parse_args()
 
@@ -58,9 +65,11 @@ def handle_packet(packet: Packet, args, keylog, sessions: list[Session], portmap
 
 
 def run():
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s : %(filename)s : %(message)s")
+
     args = arg_parser_init()
     portmap = get_port_map(args)
+
+    set_logger(args)
 
     server_ports.extend([int(x) for x in args.serverports])
 

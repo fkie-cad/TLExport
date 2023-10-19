@@ -64,6 +64,8 @@ class OutputBuilder:
                 self.build_client_packet(decrypted, ts)
         return self.out
 
+    # due to the size difference between plaintext and ciphertext new Syn/Ack values starting at 0 are used.
+    # timestamps for the TCP Handshake are equal to the timestamp of the first TLS-Record
     def build_ack_handshake(self):
         syn = Ether(src=self.client_mac_addr, dst=self.server_mac_addr) / IP(src=self.client_ip,
                                                                              dst=self.server_ip) / TCP(
