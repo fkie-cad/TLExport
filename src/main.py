@@ -9,7 +9,7 @@ from src.session import Session
 from src.checksums import calculate_checksum_tcp
 from src.log import set_logger
 
-server_ports = [443, 44330]
+server_ports = [443, 44330,5556]
 keylog = []
 sessions = []
 
@@ -17,11 +17,11 @@ sessions = []
 def arg_parser_init():
     parser = argparse.ArgumentParser(description="Adding Decryption Secret Block Support to Zeek")
     parser.add_argument("-p", "--serverports", help="additional ports to test for TLS-Connections", nargs="+",
-                        default=[443])
+                        default=[443, 44330])
     parser.add_argument("-i", "--infile", help="path of input file",
-                        default="in.pcapng")
+                        default="pcaps_und_keylogs/tls1_3_pcaps/tls_1_3_aes_CCM.pcapng")
     parser.add_argument("-o", "--outfile", help="path of output file", default="out.pcapng")
-    parser.add_argument("-s", "--sslkeylog", help="path to sslkeylogfile")
+    parser.add_argument("-s", "--sslkeylog", help="path to sslkeylogfile", default="pcaps_und_keylogs/tls1_3_pcaps/tls_13_keylog.log")
     # default False due to checksum offloading producing wrong checksums in Packet Capture
     parser.add_argument("-c", "--checksumTest", help="enable for checking tcp Checksums",
                         action=argparse.BooleanOptionalAction, default=False)
@@ -34,7 +34,7 @@ def arg_parser_init():
                         default=["443:8080"])
     parser.add_argument("-d", "--debug",
                         help="enable logger and set log-level, log levels are INFO, WARNING and ERROR",
-                        default="ERROR")
+                        default="INFO")
 
     parser.add_argument("-f", "--filter",
                         help="filter log messages by file, add files you want to filter", nargs="+")

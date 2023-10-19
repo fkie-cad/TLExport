@@ -274,6 +274,10 @@ class Decryptor:
             cipher_alg = TripleDES(key)
             block_size = 8
             logging.info(f"algorithm: 3DES")
+        elif self.bulk_alg == Camellia:
+            cipher_alg = Camellia(key)
+            block_size = 16
+            logging.info(f"algorithm: Camellia")
         iv = record.binary[:block_size]
 
         logging.info(f"Key: {key}, Initialization Vector: {iv}")

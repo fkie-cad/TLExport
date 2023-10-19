@@ -18,7 +18,7 @@ def set_logger(args):
         case "WARNING":
             log_level = logging.WARNING
         case _:
-            log_level = logging.INFO
+            log_level = logging.ERROR
 
     log_filter = logging.Filter()
 
