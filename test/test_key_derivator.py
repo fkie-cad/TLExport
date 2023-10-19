@@ -1,5 +1,5 @@
 from unittest import TestCase
-import src.key_derivator as kd
+import tlexport.key_derivator as kd
 from cryptography.hazmat.primitives.ciphers.algorithms import ARC4, AES, TripleDES
 from cryptography.hazmat.primitives.hashes import SHA256
 

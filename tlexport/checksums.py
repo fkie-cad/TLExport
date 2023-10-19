@@ -1,7 +1,7 @@
 import copy
 import logging
 
-from src.packet import Packet
+from tlexport.packet import Packet
 
 
 def ones_complement_checksum(byte_arr: bytearray) -> bytearray:

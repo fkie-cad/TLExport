@@ -12,8 +12,8 @@ class TestProg(TestCase):
     def testrun(self):
         for file in self.files:
             res = subprocess.run(
-                ["python3", "../src/main.py", "-i", "./testfiles/" + file, "-s",
-                 "./keylog.log", "-d", "INFO"], capture_output=True, text=True)
+                ["python3", "../tlexport/main.py", "-i", "./testfiles/" + file, "-s",
+                 "./keylog.log", "-d", "INFO", "-p","443", "44330","5556"], capture_output=True, text=True)
 
             self.assertIn("Lorem\\n", res.stderr, msg="\n" + file)
             self.assertIn(
@@ -22,6 +22,6 @@ class TestProg(TestCase):
 
         for file in self.lorem_files:
             res = subprocess.run(
-                ["python3", "../src/main.py", "-i", "./incomplete_pcaps/" + file, "-s", "./keylog.log", "-d", "INFO"],
+                ["python3", "../tlexport/main.py", "-i", "./incomplete_pcaps/" + file, "-s", "./keylog.log", "-d", "INFO", "-p","443", "44330","5556"],
                 capture_output=True, text=True)
             self.assertIn("Lorem\\n", res.stderr, msg="\n" + file)

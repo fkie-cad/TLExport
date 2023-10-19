@@ -5,10 +5,10 @@ from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305, AESGCM
 from cryptography.hazmat.primitives.hashes import SHA1, SHA256, SHA384
 from cryptography.hazmat.primitives.ciphers.modes import CBC, GCM
 
-from src.decryptor import Decryptor
-from src.tlsversion import TlsVersion
+from tlexport.decryptor import Decryptor
+from tlexport.tlsversion import TlsVersion
 
-from src.tlsrecord import TlsRecord
+from tlexport.tlsrecord import TlsRecord
 
 """
 implemented tests:

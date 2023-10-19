@@ -1,7 +1,7 @@
 from scapy.packet import Raw
 from scapy.layers.l2 import Ether
 from scapy.layers.inet import IP, TCP
-from src.tlsrecord import TlsRecord
+from tlexport.tlsrecord import TlsRecord
 from math import floor
 
 

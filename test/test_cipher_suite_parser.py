@@ -1,12 +1,12 @@
 from unittest import TestCase
-from src.cipher_suite_parser import cipher_suites, split_cipher_suite
+from tlexport.cipher_suite_parser import cipher_suites, split_cipher_suite
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers import algorithms, modes
 from cryptography.hazmat.primitives.ciphers import aead
 
 import sys
 
-sys.path.append("../src")
+sys.path.append("../tlexport")
 
 
 class TestCipherSuiteParser(TestCase):

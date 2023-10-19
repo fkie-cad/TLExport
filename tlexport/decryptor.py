@@ -1,7 +1,7 @@
 import logging
 
-from src.tlsversion import TlsVersion
-from src.tlsrecord import TlsRecord
+from tlexport.tlsversion import TlsVersion
+from tlexport.tlsrecord import TlsRecord
 
 
 from enum import Enum

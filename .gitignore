@@ -1,5 +1,5 @@
 .idea
 /test/out.pcapng
-/src/out.pcapng
-/src/test.py
+/tlexport/out.pcapng
+/tlexport/test.py
 /out.pcapng

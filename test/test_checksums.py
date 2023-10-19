@@ -1,9 +1,9 @@
 
 
 from unittest import TestCase
-from src.checksums import ones_complement_checksum
-from src.checksums import calculate_checksum_tcp
-from src.packet import Packet
+from tlexport.checksums import ones_complement_checksum
+from tlexport.checksums import calculate_checksum_tcp
+from tlexport.packet import Packet
 
 
 class TestChecksums(TestCase):

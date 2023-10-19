@@ -2,14 +2,14 @@ import dpkt
 import argparse
 import logging
 
-from src.packet import Packet
-import src.keylog_reader as keylog_reader
-from src.dpkt_dsb import Reader
-from src.session import Session
-from src.checksums import calculate_checksum_tcp
-from src.log import set_logger
+from tlexport.packet import Packet
+import tlexport.keylog_reader as keylog_reader
+from tlexport.dpkt_dsb import Reader
+from tlexport.session import Session
+from tlexport.checksums import calculate_checksum_tcp
+from tlexport.log import set_logger
 
-server_ports = [443, 44330,5556]
+server_ports = [443]
 keylog = []
 sessions = []
 
@@ -17,7 +17,7 @@ sessions = []
 def arg_parser_init():
     parser = argparse.ArgumentParser(description="Adding Decryption Secret Block Support to Zeek")
     parser.add_argument("-p", "--serverports", help="additional ports to test for TLS-Connections", nargs="+",
-                        default=[443, 44330])
+                        default=[443])
     parser.add_argument("-i", "--infile", help="path of input file",
                         default="pcaps_und_keylogs/tls1_3_pcaps/tls_1_3_aes_CCM.pcapng")
     parser.add_argument("-o", "--outfile", help="path of output file", default="out.pcapng")
@@ -71,6 +71,7 @@ def run():
 
     set_logger(args)
 
+    print(args.serverports)
     server_ports.extend([int(x) for x in args.serverports])
 
     if args.sslkeylog is not None:

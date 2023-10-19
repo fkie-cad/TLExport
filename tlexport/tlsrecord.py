@@ -1,4 +1,4 @@
-from src.packet import Packet
+from tlexport.packet import Packet
 
 
 # data class for better handling of tls records

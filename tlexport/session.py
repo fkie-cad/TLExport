@@ -1,12 +1,12 @@
 import logging
 
-from src.packet import Packet
-from src.tlsrecord import TlsRecord
-from src.tlsversion import TlsVersion
-import src.key_derivator as key_derivator
-import src.cipher_suite_parser as cipher_suite_parser
-from src.decryptor import Decryptor
-from src.output_builder import OutputBuilder
+from tlexport.packet import Packet
+from tlexport.tlsrecord import TlsRecord
+from tlexport.tlsversion import TlsVersion
+import tlexport.key_derivator as key_derivator
+import tlexport.cipher_suite_parser as cipher_suite_parser
+from tlexport.decryptor import Decryptor
+from tlexport.output_builder import OutputBuilder
 
 from ipaddress import IPv6Address, IPv4Address
 from cryptography.hazmat.primitives.ciphers.algorithms import AES, TripleDES, IDEA, Camellia
