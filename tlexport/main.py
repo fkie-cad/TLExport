@@ -19,9 +19,9 @@ def arg_parser_init():
     parser.add_argument("-p", "--serverports", help="additional ports to test for TLS-Connections", nargs="+",
                         default=[443])
     parser.add_argument("-i", "--infile", help="path of input file",
-                        default="pcaps_und_keylogs/tls1_3_pcaps/tls_1_3_aes_CCM.pcapng")
+                        default="in.pcapng")
     parser.add_argument("-o", "--outfile", help="path of output file", default="out.pcapng")
-    parser.add_argument("-s", "--sslkeylog", help="path to sslkeylogfile", default="pcaps_und_keylogs/tls1_3_pcaps/tls_13_keylog.log")
+    parser.add_argument("-s", "--sslkeylog", help="path to sslkeylogfile")
     # default False due to checksum offloading producing wrong checksums in Packet Capture
     parser.add_argument("-c", "--checksumTest", help="enable for checking tcp Checksums",
                         action=argparse.BooleanOptionalAction, default=False)
