@@ -71,7 +71,6 @@ def run():
 
     set_logger(args)
 
-    print(args.serverports)
     server_ports.extend([int(x) for x in args.serverports])
 
     if args.sslkeylog is not None:

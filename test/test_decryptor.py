@@ -71,8 +71,8 @@ class TestTls13Decryptor(TestCase):
             'server_handshake_iv': b'\xed\x04\xf9\xd7\xf9\x8f\x8cc[B>\xf3',
             'client_application_iv': b'\x08&\xab\xbf,5\xb2\xc2T\xfd3u',
             'server_application_iv': b'\x91\x1e\xb0\xa0\xa3s]\xd6\x02;:\xc5'},
-                                                       TlsVersion.TLS13, 16, 32, 16, 128, {b'\x003': bytearray(
-                b'\x00\x17\x00A\x04\x19U\xfeBc:q\xa8q\xf6\x930\xda\xd0\x82\x14Z\xb6\xc9\xe2\x95\xea\x1a\xef<\xf7\xaa\xebL\x91Q\x0c\xf4\x08dEI\xf9\t\xd0f\x9e]\xf2\xd0\xd4\xc6\x92\xcaL:\x1c\xae\xcf\x8f\xad\xc1\xaa^\x11d\xc2\x8fo'),
+                                                       TlsVersion.TLS13, 16, 32, 16, 128,
+                                                       {b'\x003': bytearray(b'\x00\x17\x00A\x04\x19U\xfeBc:q\xa8q\xf6\x930\xda\xd0\x82\x14Z\xb6\xc9\xe2\x95\xea\x1a\xef<\xf7\xaa\xebL\x91Q\x0c\xf4\x08dEI\xf9\t\xd0f\x9e]\xf2\xd0\xd4\xc6\x92\xcaL:\x1c\xae\xcf\x8f\xad\xc1\xaa^\x11d\xc2\x8fo'),
                                                            b'\x00+': bytearray(
                                                                b'\x03\x04')})
 
@@ -85,8 +85,8 @@ class TestTls13Decryptor(TestCase):
             'server_handshake_iv': b'\x1f\x07w[\r\xe1\x0f\xfd: /$',
             'client_application_iv': b'\xb9\xd1\x80\x19\xa4\xb6R}\xa9\x10\xef\x98',
             'server_application_iv': b'\xfc\xd9Y\xb3\x86T\x19\xfe\xe7\x0fv\xd4'},
-                                                         TlsVersion.TLS13, 16, 32, 8, 128, {b'\x003': bytearray(
-                b'\x00\x17\x00A\x04(a4\x9b+\x15\x1c\x99i\x12\x84\x88\xb9q\x98\x90\xe8/\xd9\x115\xaaAM\xac\xceW\x9bSz \xe9|\x99\xa5\x13\xf38>\xb2\xe9\xef\xf5\xf1\xc5\xbaz\xf9\xc7\x0ez\x1aAq\x0b\xaa\xe6\r\xc0\x0c\xe7\x03\xbd\xff'),
+                                                         TlsVersion.TLS13, 16, 32, 8, 128,
+                                                         {b'\x003': bytearray(b'\x00\x17\x00A\x04(a4\x9b+\x15\x1c\x99i\x12\x84\x88\xb9q\x98\x90\xe8/\xd9\x115\xaaAM\xac\xceW\x9bSz \xe9|\x99\xa5\x13\xf38>\xb2\xe9\xef\xf5\xf1\xc5\xbaz\xf9\xc7\x0ez\x1aAq\x0b\xaa\xe6\r\xc0\x0c\xe7\x03\xbd\xff'),
                                                              b'\x00+': bytearray(
                                                                  b'\x03\x04')})
 
@@ -667,6 +667,18 @@ class TestTls12Decryptor(TestCase):
                                                     b'\x00#': bytearray(b''), b'\xff\x01': bytearray(b'\x00'),
                                                     b'\x00\x1c': bytearray(b'@\x00')})
 
+        self.tls_1_2_camellia_128_decryptor = Decryptor(Camellia, CBC, SHA1, {
+            'client_write_MAC_secret': b'lM\x04{|\xc0\xcc(nQ\x90x\xdfK\xe2\xc3\x00\xba\xcf\xd8',
+            'server_write_MAC_secret': b'\xf6\xca\xb3\xbb\x97\xd0b\x13F\x00LL\xf0\x91\xf6\xdfA\xe8p\xb9',
+            'client_write_key': b'\xf8\r-\xa5K\xb9u\x93$\x8eF*\xd4h\x12\x08',
+            'server_write_key': b'\xd4\x80\x9e\x8c\xad\x12;\xfe\xf7\x88s]\x919\x8f{',
+            'client_write_IV': b'\xf9\xccX\xb6D\r~\x94\x8e{\xc5u\x02\xf9\xc5v',
+            'server_write_IV': b'\x0b\xe6\xc2\xb1LKBd\x95}\xf8\x86\xd9\xad1X'},
+                                                        TlsVersion.TLS12, 16, 20, 16, 128,
+                                                        {b'\x00\x16': bytearray(b''), b'\x00\x17': bytearray(b''),
+                                                         b'\x00#': bytearray(b''), b'\xff\x01': bytearray(b'\x00'),
+                                                         b'\x00\x1c': bytearray(b'@\x00')})
+
     def test_3des_decrypt(self):
         client_1 = TlsRecord(bytearray(
             b'\x16\x03\x03\x004CB\xde~\x01sd\x82\x1b\xc4\xf2\xfc\x98\x026\x8bZ\x11L\x1a\x93L\xe6&\xa3\xf6\x1e(\x000h\x9a_1o\x98\xe4\xdd\xd0\x9a1\x96\xcd^-X\x0c%\xe1\xae\xb3\xb4'),
@@ -691,16 +703,16 @@ class TestTls12Decryptor(TestCase):
     def test_aes_128_ccm_decrypt(self):
         client_1 = TlsRecord(bytearray(
             b'\x16\x03\x03\x00(\x00\x00\x00\x00\x00\x00\x00\x00\xb7\x9d\x8cP\x00\xc4\x87\xda\x97\xda\xdd\x80-\xd8\xcb\xc2\xdd\xed\x87\xc1;\xdd\t\x0c\xa0\xe5C\x0fu\xa1\xceC'),
-                             [], False)
+            [], False)
         server_1 = TlsRecord(bytearray(
             b'\x16\x03\x03\x00(\x00\x00\x00\x00\x00\x00\x00\x00\x81\x8e\x06\x04\t\r%8\xe7Z\xbeg?$\x88=4\xfe*\x91\x10\xday^1\xc8\xa5\rB\xe8\x8b#'),
-                             [], True)
+            [], True)
         client_2 = TlsRecord(bytearray(
             b'\x17\x03\x03\x00\x1e\x00\x00\x00\x00\x00\x00\x00\x01_bh\x10\xb5a\x08\x11\xce\xd7\xb6A\xb9\xab\x1f5\x1b|\x1d7\x89\x8a'),
-                             [], False)
+            [], False)
         server_2 = TlsRecord(bytearray(
             b'\x17\x03\x03\x00\x1e\x00\x00\x00\x00\x00\x00\x00\x01\xca\xdb\xa6\xab\xc2\xe8\xc8\xa2\xf9\xf2\x186\x12\xaa\xa4\x15\x05\xd9\xbc\x1fY\x0f'),
-                             [], True)
+            [], True)
 
         self.assertEqual(self.tls_1_2_aes_128_ccm_decryptor.decrypt(client_1, False),
                          b'\x14\x00\x00\x0cr1-L\xd1\x81\xe8\xe4\xe3\xd8\x1f\x06')
@@ -712,10 +724,10 @@ class TestTls12Decryptor(TestCase):
     def test_aes_256_ccm_8_decrypt(self):
         client_1 = TlsRecord(bytearray(
             b'\x16\x03\x03\x00 \x00\x00\x00\x00\x00\x00\x00\x00`]\x05\xb1\x80\x1d\xb6\x90Z0\xf9\x0bvZr\xc9\xb3qi\x1c\x0f\xab\xd9\xe6'),
-                             [], False)
+            [], False)
         server_1 = TlsRecord(bytearray(
             b'\x16\x03\x03\x00 \x00\x00\x00\x00\x00\x00\x00\x00g/O,\xf2\xd1\xce\xf4[\x93\x8a\xdfa \x10\x1f@_\xe3\xa2\xb3\xe2\xe8\xf5'),
-                             [], True)
+            [], True)
         client_2 = TlsRecord(
             bytearray(b'\x17\x03\x03\x00\x16\x00\x00\x00\x00\x00\x00\x00\x01\xfc\xba\x17++\xcd1\x8d\xb53@n\xa1\\'), [],
             False)
@@ -733,16 +745,16 @@ class TestTls12Decryptor(TestCase):
     def test_aes_256_cbc_decrypt(self):
         client_1 = TlsRecord(bytearray(
             b"\x16\x03\x03\x00D\x89@(\x87\x0f\x91\x9a.9\xc9 hxKS\xcf\x96@\xb4\x13\x82\x1f\x9c\xef\xb1\xe2w\xaf\'v\x8dl{]\xa0A\xb1\xb1\x06\x89\x00\xf2\x9b\xbf\xa6\x0fe\xd67\x99\xa6\x14\x803\xaf\x8d\xb3\xf5\x16\xdb\xbeIN\xfe9\xf4F~"),
-                             [], False)
+            [], False)
         server_1 = TlsRecord(bytearray(
             b'\x16\x03\x03\x00D\xeb\x9e\x8fw\xf8\xc0\xb0\xe5\xc0\n\xa7\x02Y~\xec\x06Cu\xf0\x91(\xca\x98qdX+\xe4\xf7\xf9E\xf4\xb9\x94\x02\xdf\x9c\x05\xe5AlD\xaa.\x18\xc4\xd6\xb5\x8c\xb2/\x17\x19\xe3[\xb2\x91@\x18O.\xba\xab\xf0\xe66q\x16'),
-                             [], True)
+            [], True)
         client_2 = TlsRecord(bytearray(
             b'\x17\x03\x03\x004\xee\x90\xd5\x93\xb0d\xa8)\x81\x12Y\xf0\x8b/\xf1\xc8b\xa6\xbb\xfb\x19%\xb0:\xad\x06\x0c\xb1\xb4\xaey\\\xf9]$`\xb5\xdf\n,*\xb5\x99\xf5\xcc\xbcq\xf1\x8b\x1e\x0c\xc2'),
-                             [], False)
+            [], False)
         server_2 = TlsRecord(bytearray(
             b'\x17\x03\x03\x0040\xc6p\xe7m\xf0T|aA\xb7P\xac\xa5\tO\xf0\x15T\x1c\x8b\xe3y\x9c\x1e\x9c\xa2$3\xa7\xed\xb8\xeeq\x94\x8d\xa99\x8fT\x83\x02S\x88\xea \x95\x06\xfen\x9bQ'),
-                             [], True)
+            [], True)
 
         self.assertEqual(self.tls_1_2_aes_256_cbc_decryptor.decrypt(client_1, False),
                          b'\x14\x00\x00\x0c\xf8\xd2\xe3\x86\xde&7?\xd0\xdd-\x80')
@@ -754,16 +766,16 @@ class TestTls12Decryptor(TestCase):
     def test_aes_256_gcm_decrypt(self):
         client_1 = TlsRecord(bytearray(
             b'\x16\x03\x03\x00(\x00\x00\x00\x00\x00\x00\x00\x00\xa9\xc9\xa3\xd3E\xf88\xff]\xc8\x86\x80cL\xfc\n#\r-\xef\xa0\x10\xa6\xb4\xcdx\xc9\xccW>\x8b\x99'),
-                             [], False)
+            [], False)
         server_1 = TlsRecord(bytearray(
             b'\x16\x03\x03\x00(\x00\x00\x00\x00\x00\x00\x00\x00_\xf1\xe2=\x12K\x92i$\xbd|\xb7\x1fv=u\xd4t\xfd\xa6l~\xa4\x9c!d\xab\xfc\x8a\x83Q9'),
-                             [], True)
+            [], True)
         client_2 = TlsRecord(bytearray(
             b'\x17\x03\x03\x00\x1e\x00\x00\x00\x00\x00\x00\x00\x01^\x96Bw\xfe(\xc2\xf2\x90\x8c\x08\xa9\x9e\xba\xc2\xd8\x8f\xbe\xb9q\xd4\x01'),
-                             [], False)
+            [], False)
         server_2 = TlsRecord(bytearray(
             b'\x17\x03\x03\x00\x1e\x00\x00\x00\x00\x00\x00\x00\x01|]b\x1an\xf5\xc6|-\xa5\x00\xa3W\xf3\x03I\xc6_g\\\x1e\xfd'),
-                             [], True)
+            [], True)
 
         self.assertEqual(self.tls_1_2_aes_256_gcm_decryptor.decrypt(client_1, False),
                          b'\x14\x00\x00\x0c\xe2~t\x85W\x10\x99\xcf\xfd\x1e\xa06')
@@ -775,13 +787,13 @@ class TestTls12Decryptor(TestCase):
     def test_chacha20_poly1305_decrypt(self):
         client_1 = TlsRecord(bytearray(
             b'\x16\x03\x03\x00 \xd3\xe5\xe2\xa7\xd2zJ\xc0\x8e\xdd\x19\xea\xbf\xa4\xda\xbad\x05Pm\x0fh\xdc\xebA\xec\xdf\xb3\x84\x1e^_'),
-                             [], False)
+            [], False)
         server_1 = TlsRecord(bytearray(
             b'\x16\x03\x03\x00 \xfb\xed\xae#\xc9\xca/\xdb\xe7\xb6oUI\xb2\rbO\xc6\x7f\x83\xfa\xf2\xb4\xf9\xa7\xe2\xd8\x99V\xb5\x1at'),
-                             [], True)
+            [], True)
         client_2 = TlsRecord(bytearray(
             b'\x17\x03\x03\x00\x16\xdc\xcd\x02\xe5\xc2\xd2\x82\x8c\x869\xe6\xca~\xe9\x93\xdf\x8e\x8b\xe6I\xba\x8f'), [],
-                             False)
+            False)
         server_2 = TlsRecord(bytearray(b'\x17\x03\x03\x00\x16\xe24Gl"?*\xbb\xd4o\x8fN\xa2\xd7Z\x85w-\xb5\x1aU\xce'), [],
                              True)
 
@@ -795,10 +807,10 @@ class TestTls12Decryptor(TestCase):
     def test_rc4_128_decrypt(self):
         client_1 = TlsRecord(bytearray(
             b'\x16\x03\x03\x00$.\xff5\xd4A\x01\x1e\x89HS\xa6\xb4\x06\xb1\x1fKK\x98~\x9e\x13\xc8x\xc1\xf9\x98\x12\xb4\x930\x86\xca\xfcZ\x97\x1c'),
-                             [], False)
+            [], False)
         server_1 = TlsRecord(bytearray(
             b'\x16\x03\x03\x00$\x1c\x95|H\xf6\xbeHE\xb9\xc8c!b\x9aT\x0c\xd2\x1c\xc4n(Z\x9b\xefc\xfd\xe5Z\x1ae\xd5\x08\xfc\x85\x98O'),
-                             [], True)
+            [], True)
         client_2 = TlsRecord(
             bytearray(b'\x17\x03\x03\x00\x1a\x9d?\xb7\xa4+wh=\xb3Z\xd7\x96\x96[\x97\xb5%\xf4,\x17=\x1d\xfcf<\xf1'), [],
             False)
@@ -812,6 +824,27 @@ class TestTls12Decryptor(TestCase):
                          b'\x14\x00\x00\x0c\xae\x9d\x98\xf8.\xb8\x12\xa0\xc2\x12\xba\xae')
         self.assertEqual(self.tls_1_2_rc4_128_decryptor.decrypt(client_2, False), b'Lorem\n')
         self.assertEqual(self.tls_1_2_rc4_128_decryptor.decrypt(server_2, True), b'Lorem\n')
+
+    def test_camellia_128_cbc_decrypt(self):
+        client_1 = TlsRecord(bytearray(
+            b'\x16\x03\x03\x00D\x0f\xad\xe3\x03\x81\x8b\xa6J\x87\xa1\xaa\x9d\x916\x81+\xa1z\x10}rol\xa1\xf56yGE\xae\xd3\xb8\x95b&\xb7\x88\xc5\r%\x8f\x9a%@\xe8\x1d\xf5\xd5\xef\xf9\x9c\x9e\xb1h\x1b\x1c\xc4\xf4\xb5\xa6\xd4p\xc4\x0c;\x0c\x9c`'),
+                             [], False)
+        server_1 = TlsRecord(bytearray(
+            b"\x16\x03\x03\x00D\x1c\xb7\xf3\xd3\xb3\xbcSS\x10\'\x14_\xce{\x19\x84\xf0U7\xa2\xa8^\x9a\xb0\xf9\xd7YiS\x92\x92\x1d\x0b\xc6\xb3\x85\x86\x1d-\x90X\rH\xf5E\x97\xc0\xa8\xa4=\xb2`O\xdb\x84\r\xdb\xda\xca\x9b\xf9\x98p\xe0\xd7m!\x1e"),
+                             [], True)
+        client_2 = TlsRecord(bytearray(
+            b'\x17\x03\x03\x004S\x98\x00\xe9\xfeG\xd6\xc37\xf6\x9e\xcc\x16\xe7\x1cH\x94\x15\xe7\xc5\xf6\xf7M\xb9G\xf3\x90\xcd]}Q}\xf1M\xceWF\xff\xd4\x15\xa0\x952\xce=\x8b\xb8%o\x0eL\x04'),
+                             [], False)
+        server_2 = TlsRecord(bytearray(
+            b'\x17\x03\x03\x004\xb5\x1e\x8e\x9dM\xc7\xfer_p\xfb\xf7&.c\x9cA]\xf7\xf3`\xf9\xfc\x9c\x17d\xadY\xf8\xf1I5\xd7\xaf\xf6\xbc\x18\x85|\x02\xee!\xf6\x18\xbf0k\xd7\x10\x06\xd0Z'),
+                             [], True)
+
+        self.assertEqual(self.tls_1_2_camellia_128_decryptor.decrypt(client_1, False),
+                         b'\x14\x00\x00\x0c9\xb6\x95W\xc8\xc7K\xfd\x91\x11\xd8)')
+        self.assertEqual(self.tls_1_2_camellia_128_decryptor.decrypt(server_1, True),
+                         b'\x14\x00\x00\x0c+dn\x1f,\xb0T\x933\xcf\xf1\x1a')
+        self.assertEqual(self.tls_1_2_camellia_128_decryptor.decrypt(client_2, False), b'Lorem\n')
+        self.assertEqual(self.tls_1_2_camellia_128_decryptor.decrypt(server_2, True), b'Lorem\n')
 
 
 class TestTls10Decryptor(TestCase):
@@ -983,6 +1016,18 @@ class TestTls11Decryptor(TestCase):
                                                    {b'\x00\x17': bytearray(b''), b'\x00#': bytearray(b''),
                                                     b'\xff\x01': bytearray(b'\x00'), b'\x00\x1c': bytearray(b'@\x00')})
 
+        self.tls_1_1_camellia_128_decryptor = Decryptor(Camellia, CBC, SHA1, {
+            'client_write_MAC_secret': bytearray(b'\x0c0\xf2\x86\xff\xc4\xd0\xb2F\x1c\xd0\xad@a^\x88\xa7\xee\xebQ'),
+            'server_write_MAC_secret': bytearray(b'T\x9fZ\x10\xe7\x99J\xcc\x98\xf6\xf6\xfdGD\x7f\xc1\xcdE\xe1\xec'),
+            'client_write_key': bytearray(b'\x1b\xa41\xb7<\xa5\x05d\x12\x8f\x104\xe4\x18?&'),
+            'server_write_key': bytearray(b'\xa6H\xca\xbadV\xc9\xa0\xc8\x05\x81\x8a%\x9c\x1a,'),
+            'client_write_IV': bytearray(b"\xcd\x99\x91%\xd0\x97\xf7\'\x00\xdb\x15\x97\xe4\xe52\xa6"),
+            'server_write_IV': bytearray(b'\x0e\xa5\xc7<\xa8\xfdh\xa03\xe9\x9d^\xf3ZS]')},
+                                                        TlsVersion.TLS11, 16, 20, 16, 128,
+                                                        {b'\x00\x16': bytearray(b''), b'\x00\x17': bytearray(b''),
+                                                         b'\x00#': bytearray(b''), b'\xff\x01': bytearray(b'\x00'),
+                                                         b'\x00\x1c': bytearray(b'@\x00')})
+
     def test_rc4_128_decrypt(self):
         client_1 = TlsRecord(bytearray(
             bytes.fromhex("16030200249e4df38e2b00e80a8efbb44ae81371380f303da75ebb2be8aeeb76c6d1cfb8b096990c5d")),
@@ -1005,25 +1050,29 @@ class TestTls11Decryptor(TestCase):
         self.assertEqual(self.tls_1_1_rc4_128_decryptor.decrypt(server_2, True), b'Lorem\n')
 
     def test_3des_cbc(self):
-            client_1 = TlsRecord(bytearray(
-                bytes.fromhex("160302003486ef14b9d210d261a0a0ac4a859ae37b77186c84050810e35d37f330a0d76ad0de49841d1f08b29ad12a47adf7a0acf83a4eccb2")),
-                [], False)
-            server_1 = TlsRecord(bytearray(
-                bytes.fromhex("1603020034c4594ef59609cf9db8e437c138dc357c8e861fb26d9e2e9710cb08da464535f6b68196989aa17f6041da0134a8859900717af323")),
-                [], True)
-            client_2 = TlsRecord(bytearray(
-                bytes.fromhex("1703020024da3fb743b8462144de44c121fa7e692a5ff9a3d6eb6abaac9b973c0e4dac2d04bd0ff75f")),
-                [], False)
-            server_2 = TlsRecord(
-                bytearray(bytes.fromhex("170302002446ab01db8d781804ae56806ea5be325ac727a2bd87e2372af9eb0435f5c4fdb2e24d91ef")), [],
-                True)
+        client_1 = TlsRecord(bytearray(
+            bytes.fromhex(
+                "160302003486ef14b9d210d261a0a0ac4a859ae37b77186c84050810e35d37f330a0d76ad0de49841d1f08b29ad12a47adf7a0acf83a4eccb2")),
+            [], False)
+        server_1 = TlsRecord(bytearray(
+            bytes.fromhex(
+                "1603020034c4594ef59609cf9db8e437c138dc357c8e861fb26d9e2e9710cb08da464535f6b68196989aa17f6041da0134a8859900717af323")),
+            [], True)
+        client_2 = TlsRecord(bytearray(
+            bytes.fromhex("1703020024da3fb743b8462144de44c121fa7e692a5ff9a3d6eb6abaac9b973c0e4dac2d04bd0ff75f")),
+            [], False)
+        server_2 = TlsRecord(
+            bytearray(
+                bytes.fromhex("170302002446ab01db8d781804ae56806ea5be325ac727a2bd87e2372af9eb0435f5c4fdb2e24d91ef")),
+            [],
+            True)
 
-            self.assertEqual(self.tls_1_1_3des_ebe_cbc_decryptor.decrypt(client_1, False),
-                             bytes.fromhex("1400000c0fd63ad3c6a6c4f43d623664"))
-            self.assertEqual(self.tls_1_1_3des_ebe_cbc_decryptor.decrypt(server_1, True),
-                             bytes.fromhex("1400000c1a23892cbec6a18449cafc17"))
-            self.assertEqual(self.tls_1_1_3des_ebe_cbc_decryptor.decrypt(client_2, False), b'Lorem\n')
-            self.assertEqual(self.tls_1_1_3des_ebe_cbc_decryptor.decrypt(server_2, True), b'Lorem\n')
+        self.assertEqual(self.tls_1_1_3des_ebe_cbc_decryptor.decrypt(client_1, False),
+                         bytes.fromhex("1400000c0fd63ad3c6a6c4f43d623664"))
+        self.assertEqual(self.tls_1_1_3des_ebe_cbc_decryptor.decrypt(server_1, True),
+                         bytes.fromhex("1400000c1a23892cbec6a18449cafc17"))
+        self.assertEqual(self.tls_1_1_3des_ebe_cbc_decryptor.decrypt(client_2, False), b'Lorem\n')
+        self.assertEqual(self.tls_1_1_3des_ebe_cbc_decryptor.decrypt(server_2, True), b'Lorem\n')
 
     def test_aes_128_cbc(self):
         client_1 = TlsRecord(bytearray(
@@ -1036,11 +1085,13 @@ class TestTls11Decryptor(TestCase):
                 "1603020044f7adcfe1b4c63295960384acd12de56fc25515b1548e367ff4895a9bb8b2f6d095e5739b94f4017a93a076a119f691d47712ad59341235e9c876f0f42e0ead9a01bb2a98")),
             [], True)
         client_2 = TlsRecord(bytearray(
-            bytes.fromhex("1703020034391e5ec29ff11a3977f1cc120a6da502874b8ba1cc9b8eee5149b3f62f04ebaa6f7fc885cd3b04c8ea83c1622f8c8e7fae2d1c4b")),
+            bytes.fromhex(
+                "1703020034391e5ec29ff11a3977f1cc120a6da502874b8ba1cc9b8eee5149b3f62f04ebaa6f7fc885cd3b04c8ea83c1622f8c8e7fae2d1c4b")),
             [], False)
         server_2 = TlsRecord(
             bytearray(
-                bytes.fromhex("1703020034198c059377b6a2f4d0c52decf8a28fbd3836f723a02069dee47698663452e9f9ba0b79a88385aaa48e1b56dbe0c3e8a96d0adc06")),
+                bytes.fromhex(
+                    "1703020034198c059377b6a2f4d0c52decf8a28fbd3836f723a02069dee47698663452e9f9ba0b79a88385aaa48e1b56dbe0c3e8a96d0adc06")),
             [],
             True)
 
@@ -1050,3 +1101,28 @@ class TestTls11Decryptor(TestCase):
                          bytes.fromhex("1400000c1c3dd463abb7d5654e24b23a"))
         self.assertEqual(self.tls_1_1_aes_128_cbc_decryptor.decrypt(client_2, False), b'Lorem\n')
         self.assertEqual(self.tls_1_1_aes_128_cbc_decryptor.decrypt(server_2, True), b'Lorem\n')
+
+    def test_camellia_128_cbc(self):
+        client_1 = TlsRecord(bytearray(
+            b'\x16\x03\x02\x00D\xc5I}=Y\r\x9e\x84\xb3Y"\x8e}\x97\xc1\x15\xe7\x88XK%f\x9bU\x93\x1dL\x8e\x89\x8b\xeet\xbbu5\x16{\xc7\x82\x0e\x05\xbc\x08m\x10\xa8\x00\x9c\x06\xb7|\xe37\xc4\'TQ`.\x82P\x03\x88\xa5t\t\x1dg'),
+                             [],
+                             False)
+
+        server_1 = TlsRecord(bytearray(
+            b'\x16\x03\x02\x00D\xdf\xde\xb2Ij\x99\x84\xb7\xe0NtpGEjj5N`G\xe2(\xe8d\x12\xdf \x9b0]\xf6\x83\xcba\r*uU\xaa8K\x7f\xb5\xcbV*\x1a[\xc8\xa7\xd1\xc1\xa8K\xe1\x9f9\x9e8\x02%\x82\x8dV+\xab\xd3\x9f'),
+                             [], True)
+
+        client_2 = TlsRecord(bytearray(
+            b"\x17\x03\x02\x004?7vn\x0b\xf6\xd8\x9a\x11\t\xf5\x03\x89A\x93\'B#\x96_\xf9\x8a\xaf1\xfb\x8b\xc4\x1b\xf3y/.\xd0,4_\xb1\x8b\xe6\xebZZ\x1c\xbe\xd5T\x8b\xd4e\x0e\xec\x19"),
+                             [], False)
+
+        server_2 = TlsRecord(bytearray(
+            b'\x17\x03\x02\x004\xbcV#\xfcmz.g\xe0\xe8\xc1R6\xf2\xec*\xfav\x10>\xech\x81\xf2:,@\x96`\xd5GX6\x1b\x9aj}{O\x0e:\x9et\n\x1e\xb2\x15\xd5V\xb5e\x08'),
+                             [], True)
+
+        self.assertEqual(self.tls_1_1_camellia_128_decryptor.decrypt(client_1, False),
+                         b'\x14\x00\x00\x0c\xa3\t\xb1\x9d\x1e\x18\x87r\xc3\x12}\xc9')
+        self.assertEqual(self.tls_1_1_camellia_128_decryptor.decrypt(server_1, True),
+                         b'\x14\x00\x00\x0c\xa4!\x7f\xce\x90m\xaf\xd3gD\x10\xa3')
+        self.assertEqual(self.tls_1_1_camellia_128_decryptor.decrypt(client_2, False), b'Lorem\n')
+        self.assertEqual(self.tls_1_1_camellia_128_decryptor.decrypt(server_2, True), b'Lorem\n')
