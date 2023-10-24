@@ -46,7 +46,7 @@ Install the python packages:
 - Transport Layer Security 1.0-1.3
 ### Algorithms:
 - Block Ciphers: AES-CBC, Camellia-CBC, 3DES-CBC
-- AEAD Ciphers: AES-GCM, AES-CCM, CHACHA20-POLY1305
+- AEAD Ciphers: AES-GCM, AES-CCM, AES-CCM-8, CHACHA20-POLY1305
 - Stream Ciphers: RC4
 ### soon(tm)
 - QUIC

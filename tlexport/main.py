@@ -71,7 +71,12 @@ def run():
 
     set_logger(args)
 
+    logging.info(f"Arguments: {args}")
+    logging.info(f"Mapping Ports: {portmap}")
+
     server_ports.extend([int(x) for x in args.serverports])
+    logging.info(f"Checking for TLS Traffic on these ports: {server_ports}")
+
 
     if args.sslkeylog is not None:
         keylog.extend(keylog_reader.read_keylog_from_file(args.sslkeylog))
