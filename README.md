@@ -45,9 +45,10 @@ Install the python packages:
 - Secure Socket Layer 3.0
 - Transport Layer Security 1.0-1.3
 ### Algorithms:
-- Block Ciphers: AES-CBC, Camellia-CBC, 3DES-CBC
+- Block Ciphers: AES-CBC, Camellia-CBC, 3DES-CBC, IDEA (Untested)
 - AEAD Ciphers: AES-GCM, AES-CCM, AES-CCM-8, CHACHA20-POLY1305
 - Stream Ciphers: RC4
+- Compression: Zlib/Deflate (Untested)
 ### soon(tm)
 - QUIC
 - D-TLS
