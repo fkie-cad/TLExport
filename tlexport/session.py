@@ -158,7 +158,7 @@ class Session:
 
         self.decryptor = Decryptor(cipher_suite["CryptoAlgo"][0], cipher_suite["Mode"][0], cipher_suite["MAC"], keys,
                                    self.tls_version, cipher_suite["KeyLength"], cipher_suite["MAC"].digest_size,
-                                   cipher_suite["TagLength"], block_size, self.extensions)
+                                   cipher_suite["TagLength"], block_size, self.extensions, self.compression_method)
 
     # gets the session metadata from first session packet
     def set_client_and_server_ports(self, packet: Packet, server_ports):

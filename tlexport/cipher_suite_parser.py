@@ -253,6 +253,10 @@ cipher_suites = {
     b'\x00\x31': 'TLS_DH_RSA_WITH_AES_128_CBC_SHA',
     b'\x00\x30': 'TLS_DH_DSS_WITH_AES_128_CBC_SHA',
     b'\x00\x2F': 'TLS_RSA_WITH_AES_128_CBC_SHA',
+    b'\x00\x07': 'TLS_RSA_WITH_IDEA_CBC_SHA',
+    b'\x00\x25': 'TLS_KRB5_WITH_IDEA_CBC_MD5',
+    b'\x00\x21': 'TLS_KRB5_WITH_IDEA_CBC_SHA'
+
 }
 
 cipher_suite_parts = {
@@ -263,6 +267,7 @@ cipher_suite_parts = {
         "CHACHA20": (aead.ChaCha20Poly1305, 1),
         "RC4": (algorithms.ARC4, 0),
         "CAMELLIA": (algorithms.Camellia, 0),
+        "IDEA": (algorithms.IDEA,0),
 
         "GCM": (aead.AESGCM, 1),
         "CCM": (aead.AESCCM, 1)
@@ -279,6 +284,7 @@ cipher_suite_parts = {
     },
 
     "KeyLength": {
+        "IDEA": 16,
         "AES_128": 16,
         "AES_256": 32,
         "CAMELLIA_128": 16,
@@ -331,7 +337,7 @@ def split_cipher_suite(suite_id):
         elif "CCM" in suite_string:
             cipher_suite.update({"CryptoAlgo": (aead.AESCCM, 1)})
 
-    if cipher_suite["MAC"] is (None, 0):
+    if cipher_suite["MAC"] == (None, 0):
         cipher_suite["MAC"] = hashes.SHA256
 
     return cipher_suite

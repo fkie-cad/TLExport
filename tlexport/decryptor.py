@@ -1,12 +1,12 @@
 import logging
+import zlib
 
 from tlexport.tlsversion import TlsVersion
 from tlexport.tlsrecord import TlsRecord
 
-
 from enum import Enum
 from cryptography.hazmat.primitives.ciphers import Cipher
-from cryptography.hazmat.primitives.ciphers.algorithms import AES, TripleDES, Camellia
+from cryptography.hazmat.primitives.ciphers.algorithms import AES, TripleDES, Camellia, IDEA
 from cryptography.hazmat.primitives.ciphers.aead import AESCCM, AESGCM, ChaCha20Poly1305
 from cryptography.hazmat.primitives.ciphers.algorithms import ChaCha20
 from cryptography.hazmat.primitives.ciphers.algorithms import ARC4
@@ -22,7 +22,7 @@ class EncryptionType(Enum):
 
 class Decryptor:
     def __init__(self, bulk_alg, bulk_mode, mac_alg, keys, tls_version, key_length, mac_length, tag_length,
-                 block_length, extensions) -> None:
+                 block_length, extensions, compression) -> None:
 
         self.bulk_alg = bulk_alg
         self.bulk_mode = bulk_mode
@@ -32,6 +32,7 @@ class Decryptor:
         self.mac_length = mac_length
         self.tag_length = tag_length
         self.block_length = block_length
+        self.compression_method = compression
 
         self.encrypt_then_mac = False
         if bytes.fromhex("0016") in extensions.keys():
@@ -56,13 +57,17 @@ class Decryptor:
             self.server_cipher = Cipher(self.bulk_alg(self.server_key), mode=None).decryptor()
             self.client_cipher = Cipher(self.bulk_alg(self.client_key), mode=None).decryptor()
 
+        if self.compression_method == 1:
+            self.s_decompressor = zlib.decompressobj(wbits=0)
+            self.c_decompressor = zlib.decompressobj(wbits=0)
+
     def get_cipher_type(self):
         if self.bulk_alg in [AESCCM, AESGCM]:
             self.cipher_type = EncryptionType.AEAD
             logging.info("Using AEAD Cipher")
             return
 
-        if self.bulk_alg in [AES, TripleDES, Camellia]:
+        if self.bulk_alg in [AES, TripleDES, Camellia, IDEA]:
             self.cipher_type = EncryptionType.Block_Cipher
             logging.info("Using Block Cipher")
             return
@@ -248,11 +253,16 @@ class Decryptor:
 
         logging.info(f"ciphertext: {record.binary.hex()}")
         decrypted = cipher.decrypt(nonce, bytes(ciphertext), associated_data)
-        logging.info(f"plaintext: {decrypted}")
         if isserver:
             self.server_seq += 1
         else:
             self.client_seq += 1
+
+        if self.compression_method == 0x01:
+            logging.info(f"compressed plaintext: {decrypted}")
+            decrypted = self.inflate(decrypted, isserver)
+
+        logging.info(f"plaintext: {decrypted}")
 
         return decrypted
 
@@ -278,6 +288,10 @@ class Decryptor:
             cipher_alg = Camellia(key)
             block_size = 16
             logging.info(f"algorithm: Camellia")
+        elif self.bulk_alg == IDEA:
+            cipher_alg = IDEA(key)
+            block_size = 8
+            logging.info(f"algorithm: IDEA")
         iv = record.binary[:block_size]
 
         logging.info(f"Key: {key}, Initialization Vector: {iv}")
@@ -296,14 +310,18 @@ class Decryptor:
         logging.info(f"decrypted ciphertext with padding {decrypted}")
 
         padding_length = decrypted[-1]
-        decrypted = decrypted[:-(padding_length+1)]
+        decrypted = decrypted[:-(padding_length + 1)]
 
         if not self.encrypt_then_mac:
             logging.info(f"decrypted ciphertext with mac, without padding: {ciphertext}")
             decrypted = decrypted[:-self.mac_length]
 
-        logging.info(f"plaintext: {decrypted}")
 
+        if self.compression_method == 0x01:
+            logging.info(f"compressed plaintext: {decrypted}")
+            decrypted = self.inflate(decrypted, isserver)
+
+        logging.info(f"plaintext: {decrypted}")
         return decrypted
 
     def decrypt_tls12_chacha20(self, record, isserver):
@@ -334,12 +352,17 @@ class Decryptor:
 
         logging.info(f"ciphertext: {record.binary.hex()}")
         decrypted = cipher.decrypt(bytes(nonce), bytes(record.binary), associated_data)
-        logging.info(f"plaintext: {decrypted}")
 
         if isserver:
             self.server_seq += 1
         else:
             self.client_seq += 1
+
+        if self.compression_method == 0x01:
+            logging.info(f"compressed plaintext: {decrypted}")
+            decrypted = self.inflate(decrypted, isserver)
+
+        logging.info(f"plaintext: {decrypted}")
 
         return decrypted
 
@@ -373,9 +396,9 @@ class Decryptor:
         logging.info(f"decrypted: {decrypted}")
         padding_len = decrypted[-1]
 
-        plaintext = decrypted[:-(padding_len+1)]
+        plaintext = decrypted[:-(padding_len + 1)]
 
-        logging.info(f"decrypted without padding: {ciphertext}")
+        logging.info(f"decrypted without padding: {plaintext}")
 
         if not self.encrypt_then_mac:
             plaintext = plaintext[:-self.mac_length]
@@ -386,6 +409,12 @@ class Decryptor:
         else:
             index = int(self.block_length / 8)
             self.last_block_client = ciphertext[-index:]
+
+        if self.compression_method == 0x01:
+            logging.info(f"compressed plaintext: {plaintext}")
+            plaintext = self.inflate(plaintext, isserver)
+
+        logging.info(f"plaintext: {plaintext}")
 
         logging.info(f"last cipher block iv: {ciphertext[-index:]}")
         return plaintext
@@ -430,6 +459,16 @@ class Decryptor:
             self.client_iv = self.client_application_iv
             self.client_seq = 0
 
+    def inflate(self, data, isserver):
+        if isserver:
+            decompressor = self.s_decompressor
+        else:
+            decompressor = self.c_decompressor
+
+        inflated = decompressor.decompress(data)
+        inflated += decompressor.flush()
+        return inflated
+
 
 def byte_xor(a, b):
     diff = len(a) - len(b)
@@ -441,3 +480,6 @@ def byte_xor(a, b):
         xor_out.append(a[i] ^ b_padded[i])
 
     return xor_out
+
+
+

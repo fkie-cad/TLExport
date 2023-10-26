@@ -35,7 +35,7 @@ class TestTls13Decryptor(TestCase):
             'server_application_iv': b'\x03\xe2:\x8e\xb1\x0e\x18\x80<\xda\x89\x85'},
                                                              TlsVersion.TLS13, 16, 32, 8, 128,
                                                              {b'\x00+': bytearray(b'\x03\x04'), b'\x003': bytearray(
-                                                                 b"\x00\x1d\x00 a\xb0\xb1\xf7\x83:\x85PR\x11^\xa7\xc6\x8bA\xa2\x82\xa3\xd0\'\xdd\x9cM\xdbDn\xdbL\xf2.\xfb3")})
+                                                                 b"\x00\x1d\x00 a\xb0\xb1\xf7\x83:\x85PR\x11^\xa7\xc6\x8bA\xa2\x82\xa3\xd0\'\xdd\x9cM\xdbDn\xdbL\xf2.\xfb3")}, 0)
 
         self.tls_1_3_aes_128_gcm_decryptor = Decryptor(AESGCM, AESGCM, SHA256, {
             'client_handshake_traffic_secret': b'?\x9c\xe1\x0c\xa7Q`\xa6\xddR\x9efx`\x14\x86',
@@ -47,7 +47,7 @@ class TestTls13Decryptor(TestCase):
             'client_application_iv': b'?P\xabB>\xc0\x851\xf9\xa5p\x96',
             'server_application_iv': b'hY\x0e\xb2\xc7\xce4\xf4\x0e\x9bL\r'}, TlsVersion.TLS13, 16, 32, 8, 128,
                                                        {b'\x00+': bytearray(b'\x03\x04'), b'\x003': bytearray(
-                                                           b"\x00\x1d\x00 a\xb0\xb1\xf7\x83:\x85PR\x11^\xa7\xc6\x8bA\xa2\x82\xa3\xd0\'\xdd\x9cM\xdbDn\xdbL\xf2.\xfb3")})
+                                                           b"\x00\x1d\x00 a\xb0\xb1\xf7\x83:\x85PR\x11^\xa7\xc6\x8bA\xa2\x82\xa3\xd0\'\xdd\x9cM\xdbDn\xdbL\xf2.\xfb3")},0)
 
         self.tls_1_3_aes_256_gcm_decryptor = Decryptor(AESGCM, AESGCM, SHA384, {
             'client_handshake_traffic_secret': b'\xadf\x06\x01h\x9bra\x11PAJ\x02q\xccb\xa7\xb1\xd0\xd1Tq\xbev\x1a\xac!9B";\xf8',
@@ -60,7 +60,7 @@ class TestTls13Decryptor(TestCase):
             'server_application_iv': b'\xa7\xff\xc3\xf4\xed\xc4Q\x8d\xd9\x05\xfb='},
                                                        TlsVersion.TLS13, 32, 48, 8, 128,
                                                        {b'\x00+': bytearray(b'\x03\x04'), b'\x003': bytearray(
-                                                           b'\x00\x1d\x00 \xf8n\x01\xda\x8d\xdd\xb9\x0b\x1ak\xdb\xe0\x13c\x8f@\xe5\xa0\x1c\x04\x0e\x04e\x14w\xce\x89U\x9c{\xbfj')})
+                                                           b'\x00\x1d\x00 \xf8n\x01\xda\x8d\xdd\xb9\x0b\x1ak\xdb\xe0\x13c\x8f@\xe5\xa0\x1c\x04\x0e\x04e\x14w\xce\x89U\x9c{\xbfj')},0)
 
         self.tls_1_3_aes_128_ccm_decryptor = Decryptor(AESCCM, AESCCM, SHA256, {
             'client_handshake_traffic_secret': b'\xa4\xa1p\xee!\xd7\xe2Ky\x91B|\xcd\xfb3\t',
@@ -74,7 +74,7 @@ class TestTls13Decryptor(TestCase):
                                                        TlsVersion.TLS13, 16, 32, 16, 128,
                                                        {b'\x003': bytearray(b'\x00\x17\x00A\x04\x19U\xfeBc:q\xa8q\xf6\x930\xda\xd0\x82\x14Z\xb6\xc9\xe2\x95\xea\x1a\xef<\xf7\xaa\xebL\x91Q\x0c\xf4\x08dEI\xf9\t\xd0f\x9e]\xf2\xd0\xd4\xc6\x92\xcaL:\x1c\xae\xcf\x8f\xad\xc1\xaa^\x11d\xc2\x8fo'),
                                                            b'\x00+': bytearray(
-                                                               b'\x03\x04')})
+                                                               b'\x03\x04')},0)
 
         self.tls_1_3_aes_128_ccm_8_decryptor = Decryptor(AESCCM, AESCCM, SHA256, {
             'client_handshake_traffic_secret': b'`\xd1&s.q\xda\x9a\xe2@\xf5\xe5\xa8\xca\xcd\xf3',
@@ -88,7 +88,7 @@ class TestTls13Decryptor(TestCase):
                                                          TlsVersion.TLS13, 16, 32, 8, 128,
                                                          {b'\x003': bytearray(b'\x00\x17\x00A\x04(a4\x9b+\x15\x1c\x99i\x12\x84\x88\xb9q\x98\x90\xe8/\xd9\x115\xaaAM\xac\xceW\x9bSz \xe9|\x99\xa5\x13\xf38>\xb2\xe9\xef\xf5\xf1\xc5\xbaz\xf9\xc7\x0ez\x1aAq\x0b\xaa\xe6\r\xc0\x0c\xe7\x03\xbd\xff'),
                                                              b'\x00+': bytearray(
-                                                                 b'\x03\x04')})
+                                                                 b'\x03\x04')},0)
 
     def test_aes_128_ccm_8(self):
         server_1 = TlsRecord(bytearray(
@@ -390,7 +390,7 @@ class TestSsl30Decryptor(TestCase):
             'server_write_key': b'c\xa7\x93\x98D\xf0\xa9\xb2N\xac\x90\xb3\xaa#\xfc-',
             'client_write_IV': b' \x1d\x8a\xfc', 'server_write_IV': b'\xf3\x9f\t|'}, TlsVersion.SSL30, 16, 20, 8, 0,
                                                {b'\x00#': bytearray(b''), b'\xff\x01': bytearray(b'\x00'),
-                                                b'\x00\x1c': bytearray(b'@\x00')})
+                                                b'\x00\x1c': bytearray(b'@\x00')},0)
         self.ssl_3_0_aes_128_decryptor = Decryptor(AES, CBC, SHA1, {
             'client_write_MAC_secret': b"l\xa8\x9a\xfe\x0bj\x87\x0c\xdc\xe6&\xca\xd0!\x11\xd1']\x1e\x03",
             'server_write_MAC_secret': b'\xc1\xef4YR\xce\xd3|\xec\xa1 \x89\xa8\xbc:a\x82\x9d\x10_',
@@ -399,7 +399,7 @@ class TestSsl30Decryptor(TestCase):
             'client_write_IV': b'\x97\xed\x01\x90\x08\x1a\x0fUv\x86Gx\x92\xa9\xd1)',
             'server_write_IV': b'\x06d\xefLg\xc6;\xdb\x80\x96\x94R\xd1b[['}, TlsVersion.SSL30, 16, 20, 8, 128,
                                                    {b'\x00\x16': bytearray(b''), b'\x00#': bytearray(b''),
-                                                    b'\xff\x01': bytearray(b'\x00'), b'\x00\x1c': bytearray(b'@\x00')})
+                                                    b'\xff\x01': bytearray(b'\x00'), b'\x00\x1c': bytearray(b'@\x00')},0)
         self.ssl_3_0_aes_256_decryptor = Decryptor(AES, CBC, SHA1, {
             'client_write_MAC_secret': b'a\xba\xdf\xb6g\x9f\xe8\x9d)S\xd5O\x9c\xb8\xa0\xd9\x03\x84\xad4',
             'server_write_MAC_secret': b'\x89\xb5\xe0j\x06\x90\x1b\xfa]&\xcb\x8ed\xf7\xbf<\xbf\x16b\x1d',
@@ -408,7 +408,7 @@ class TestSsl30Decryptor(TestCase):
             'client_write_IV': b'\xb6\xf3\xc2\x1fB\xe4\xd9\x8f\xbfN\x96.]\xd7\x8d\xfb',
             'server_write_IV': b'3\xf3\xedsE\x8a\xd4O\x01\x01\\/I~\x1f\x88'}, TlsVersion.SSL30, 32, 20, 16, 128,
                                                    {b'\x00\x16': bytearray(b''), b'\x00#': bytearray(b''),
-                                                    b'\xff\x01': bytearray(b'\x00'), b'\x00\x1c': bytearray(b'@\x00')})
+                                                    b'\xff\x01': bytearray(b'\x00'), b'\x00\x1c': bytearray(b'@\x00')},0)
         self.ssl_3_0_3des_ebe_cbc_decryptor = Decryptor(TripleDES, CBC, SHA1, {
             'client_write_MAC_secret': b'\xaaZ\xc7\xbd\xa1=\xb1\x8aBT2\xa3X\xe2\xef\x03\xd3NiB',
             'server_write_MAC_secret': b'\xac\x98 _w\xb8bqK\x85-\x06\xc4l\xa4\xf0\x1f\xdb\rO',
@@ -418,7 +418,7 @@ class TestSsl30Decryptor(TestCase):
                                                         TlsVersion.SSL30, 24, 20, 16, 64,
                                                         {b'\x00\x16': bytearray(b''), b'\x00#': bytearray(b''),
                                                          b'\xff\x01': bytearray(b'\x00'),
-                                                         b'\x00\x1c': bytearray(b'@\x00')})
+                                                         b'\x00\x1c': bytearray(b'@\x00')},0)
 
         self.ssl_3_0_camellia_128_decryptor = Decryptor(Camellia, CBC, SHA1, {
             'client_write_MAC_secret': b'\xb5\xeb\xa5\xed\xae:\xc8\xe0\\\xf8!\x80\xe4G\x1d\xe4g\xd3\xa6"',
@@ -430,7 +430,7 @@ class TestSsl30Decryptor(TestCase):
                                                         TlsVersion.SSL30, 16, 20, 16, 128,
                                                         {b'\x00\x16': bytearray(b''), b'\x00#': bytearray(b''),
                                                          b'\xff\x01': bytearray(b'\x00'),
-                                                         b'\x00\x1c': bytearray(b'@\x00')})
+                                                         b'\x00\x1c': bytearray(b'@\x00')},0)
 
         self.ssl_3_0_camellia_256_decryptor = Decryptor(Camellia, CBC, SHA1, {
             'client_write_MAC_secret': b'\x93\x04\x9cm\xca\x92\x9a\xb4u\xfd6\xc0\xa3\xa9v\xee\x80QX4',
@@ -442,7 +442,7 @@ class TestSsl30Decryptor(TestCase):
                                                         TlsVersion.SSL30, 32, 20, 16, 128,
                                                         {b'\x00\x16': bytearray(b''), b'\x00#': bytearray(b''),
                                                          b'\xff\x01': bytearray(b'\x00'),
-                                                         b'\x00\x1c': bytearray(b'@\x00')})
+                                                         b'\x00\x1c': bytearray(b'@\x00')},0)
 
     def test_rc4_decrypt(self):
         client_1 = TlsRecord(bytearray(
@@ -594,7 +594,7 @@ class TestTls12Decryptor(TestCase):
                                                         {b'\x00\x0b': bytearray(b'\x01\x00'),
                                                          b'\x00\x16': bytearray(b''), b'\x00\x17': bytearray(b''),
                                                          b'\x00#': bytearray(b''), b'\xff\x01': bytearray(b'\x00'),
-                                                         b'\x00\x1c': bytearray(b'@\x00')})
+                                                         b'\x00\x1c': bytearray(b'@\x00')},0)
 
         self.tls_1_2_aes_128_ccm_decryptor = Decryptor(AESCCM, AESCCM, SHA256,
                                                        {'client_write_MAC_secret': b'', 'server_write_MAC_secret': b'',
@@ -605,7 +605,7 @@ class TestTls12Decryptor(TestCase):
                                                        TlsVersion.TLS12, 16, 32, 16, 128,
                                                        {b'\x00\x17': bytearray(b''), b'\x00#': bytearray(b''),
                                                         b'\xff\x01': bytearray(b'\x00'),
-                                                        b'\x00\x1c': bytearray(b'@\x00')})
+                                                        b'\x00\x1c': bytearray(b'@\x00')},0)
 
         self.tls_1_2_aes_256_ccm_8_decryptor = Decryptor(AESCCM, AESCCM, SHA256, {'client_write_MAC_secret': b'',
                                                                                   'server_write_MAC_secret': b'',
@@ -616,7 +616,7 @@ class TestTls12Decryptor(TestCase):
                                                          TlsVersion.TLS12, 16, 32, 8, 128,
                                                          {b'\x00\x17': bytearray(b''), b'\x00#': bytearray(b''),
                                                           b'\xff\x01': bytearray(b'\x00'),
-                                                          b'\x00\x1c': bytearray(b'@\x00')})
+                                                          b'\x00\x1c': bytearray(b'@\x00')},0)
 
         self.tls_1_2_aes_256_cbc_decryptor = Decryptor(AES, CBC, SHA1, {
             'client_write_MAC_secret': b'j\xd0\x15\xe6\xd9#\x8d\x8e\xdaTg\xe6\xd2\x7f)\xd8N\xc1\xb3\xfb',
@@ -629,7 +629,7 @@ class TestTls12Decryptor(TestCase):
                                                        {b'\x00\x0b': bytearray(b'\x01\x00'),
                                                         b'\x00\x16': bytearray(b''), b'\x00\x17': bytearray(b''),
                                                         b'\x00#': bytearray(b''), b'\xff\x01': bytearray(b'\x00'),
-                                                        b'\x00\x1c': bytearray(b'@\x00')})
+                                                        b'\x00\x1c': bytearray(b'@\x00')},0)
 
         self.tls_1_2_aes_256_gcm_decryptor = Decryptor(AESGCM, GCM, SHA384,
                                                        {'client_write_MAC_secret': b'', 'server_write_MAC_secret': b'',
@@ -641,7 +641,7 @@ class TestTls12Decryptor(TestCase):
                                                        {b'\x00\x0b': bytearray(b'\x01\x00'),
                                                         b'\x00\x17': bytearray(b''), b'\x00#': bytearray(b''),
                                                         b'\xff\x01': bytearray(b'\x00'),
-                                                        b'\x00\x1c': bytearray(b'@\x00')})
+                                                        b'\x00\x1c': bytearray(b'@\x00')},0)
 
         self.tls_1_2_chacha20_poly1305_decryptor = Decryptor(ChaCha20Poly1305, ChaCha20Poly1305, SHA256,
                                                              {'client_write_MAC_secret': b'',
@@ -654,7 +654,7 @@ class TestTls12Decryptor(TestCase):
                                                              {b'\x00\x0b': bytearray(b'\x01\x00'),
                                                               b'\x00\x17': bytearray(b''), b'\x00#': bytearray(b''),
                                                               b'\xff\x01': bytearray(b'\x00'),
-                                                              b'\x00\x1c': bytearray(b'@\x00')})
+                                                              b'\x00\x1c': bytearray(b'@\x00')},0)
 
         self.tls_1_2_rc4_128_decryptor = Decryptor(ARC4, None, SHA1, {
             'client_write_MAC_secret': b"{t\xc2'm\xec\x99\xf9(r\xfa\x92I\xc2\xab\x08._\x9a@",
@@ -665,7 +665,7 @@ class TestTls12Decryptor(TestCase):
                                                    TlsVersion.TLS12, 16, 20, 16, 0,
                                                    {b'\x00\x0b': bytearray(b'\x01\x00'), b'\x00\x17': bytearray(b''),
                                                     b'\x00#': bytearray(b''), b'\xff\x01': bytearray(b'\x00'),
-                                                    b'\x00\x1c': bytearray(b'@\x00')})
+                                                    b'\x00\x1c': bytearray(b'@\x00')},0)
 
         self.tls_1_2_camellia_128_decryptor = Decryptor(Camellia, CBC, SHA1, {
             'client_write_MAC_secret': b'lM\x04{|\xc0\xcc(nQ\x90x\xdfK\xe2\xc3\x00\xba\xcf\xd8',
@@ -677,7 +677,7 @@ class TestTls12Decryptor(TestCase):
                                                         TlsVersion.TLS12, 16, 20, 16, 128,
                                                         {b'\x00\x16': bytearray(b''), b'\x00\x17': bytearray(b''),
                                                          b'\x00#': bytearray(b''), b'\xff\x01': bytearray(b'\x00'),
-                                                         b'\x00\x1c': bytearray(b'@\x00')})
+                                                         b'\x00\x1c': bytearray(b'@\x00')},0)
 
     def test_3des_decrypt(self):
         client_1 = TlsRecord(bytearray(
@@ -859,7 +859,7 @@ class TestTls10Decryptor(TestCase):
                                                         TlsVersion.TLS10, 24, 20, 16, 64,
                                                         {b'\x00\x16': bytearray(b''), b'\x00\x17': bytearray(b''),
                                                          b'\x00#': bytearray(b''), b'\xff\x01': bytearray(b'\x00'),
-                                                         b'\x00\x1c': bytearray(b'@\x00')})
+                                                         b'\x00\x1c': bytearray(b'@\x00')},0)
         self.tls_1_0_aes_128_cbc_decryptor = Decryptor(AES, CBC, SHA1, {
             'client_write_MAC_secret': bytearray(b'az\xb4O\xad}\xe9(\xcf~\x8c@\xe1\x86\xc3H\xa2_)\x0b'),
             'server_write_MAC_secret': bytearray(b'y\xcb\x03\r\xf0n\xf5`\xc7bc\xcd\x15\xc5\xe7y\xbd2\xadh'),
@@ -870,7 +870,7 @@ class TestTls10Decryptor(TestCase):
                                                        TlsVersion.TLS10, 16, 20, 16, 128,
                                                        {b'\x00\x16': bytearray(b''), b'\x00\x17': bytearray(b''),
                                                         b'\x00#': bytearray(b''), b'\xff\x01': bytearray(b'\x00'),
-                                                        b'\x00\x1c': bytearray(b'@\x00')})
+                                                        b'\x00\x1c': bytearray(b'@\x00')},0)
 
         self.tls_1_0_camellia_cbc_decryptor = Decryptor(Camellia, CBC, SHA1, {
             'client_write_MAC_secret': bytearray(b'\xd8wH\x9cE!\xf9\x1d\x01\x93O\x0eH\xf9)\xf7\x17>`\x01'),
@@ -882,7 +882,7 @@ class TestTls10Decryptor(TestCase):
                                                         TlsVersion.TLS10, 16, 20, 16, 128,
                                                         {b'\x00\x16': bytearray(b''), b'\x00\x17': bytearray(b''),
                                                          b'\x00#': bytearray(b''), b'\xff\x01': bytearray(b'\x00'),
-                                                         b'\x00\x1c': bytearray(b'@\x00')})
+                                                         b'\x00\x1c': bytearray(b'@\x00')},0)
 
         self.tls_1_0_rc4_128_decryptor = Decryptor(ARC4, None, SHA1, {
             'client_write_MAC_secret': bytearray(b'\xa1x[Gn\x91\xa7\xb6w\x97pCZ\xc6\xf8\xa3\xa5\xc3J\xcb'),
@@ -892,7 +892,7 @@ class TestTls10Decryptor(TestCase):
             'client_write_IV': bytearray(b'\xdbj\xe5\x99'), 'server_write_IV': bytearray(b'\x82\xbf\xd9\xd4')},
                                                    TlsVersion.TLS10, 16, 20, 16, 0,
                                                    {b'\x00\x17': bytearray(b''), b'\x00#': bytearray(b''),
-                                                    b'\xff\x01': bytearray(b'\x00'), b'\x00\x1c': bytearray(b'@\x00')})
+                                                    b'\xff\x01': bytearray(b'\x00'), b'\x00\x1c': bytearray(b'@\x00')},0)
 
     def test_3des_decrypt(self):
         client_1 = TlsRecord(bytearray(
@@ -991,7 +991,7 @@ class TestTls11Decryptor(TestCase):
                                                         TlsVersion.TLS11, 24, 20, 16, 64,
                                                         {b'\x00\x16': bytearray(b''), b'\x00\x17': bytearray(b''),
                                                          b'\x00#': bytearray(b''), b'\xff\x01': bytearray(b'\x00'),
-                                                         b'\x00\x1c': bytearray(b'@\x00')})
+                                                         b'\x00\x1c': bytearray(b'@\x00')},0)
 
         self.tls_1_1_aes_128_cbc_decryptor = Decryptor(AES, CBC, SHA1, {
             'client_write_MAC_secret': bytearray(bytes.fromhex("15289ce0eee45cef881e4e2603ab0df03a3a02a4")),
@@ -1003,7 +1003,7 @@ class TestTls11Decryptor(TestCase):
                                                        TlsVersion.TLS11, 16, 20, 16, 128,
                                                        {b'\x00\x16': bytearray(b''), b'\x00\x17': bytearray(b''),
                                                         b'\x00#': bytearray(b''), b'\xff\x01': bytearray(b'\x00'),
-                                                        b'\x00\x1c': bytearray(b'@\x00')})
+                                                        b'\x00\x1c': bytearray(b'@\x00')},0)
 
         self.tls_1_1_rc4_128_decryptor = Decryptor(ARC4, None, SHA1, {
             'client_write_MAC_secret': bytearray(bytes.fromhex("eef331005352271862a248691f7ca93f3266059c")),
@@ -1014,7 +1014,7 @@ class TestTls11Decryptor(TestCase):
             'server_write_IV': bytearray(bytes.fromhex("ea02a772"))},
                                                    TlsVersion.TLS11, 16, 20, 16, 0,
                                                    {b'\x00\x17': bytearray(b''), b'\x00#': bytearray(b''),
-                                                    b'\xff\x01': bytearray(b'\x00'), b'\x00\x1c': bytearray(b'@\x00')})
+                                                    b'\xff\x01': bytearray(b'\x00'), b'\x00\x1c': bytearray(b'@\x00')},0)
 
         self.tls_1_1_camellia_128_decryptor = Decryptor(Camellia, CBC, SHA1, {
             'client_write_MAC_secret': bytearray(b'\x0c0\xf2\x86\xff\xc4\xd0\xb2F\x1c\xd0\xad@a^\x88\xa7\xee\xebQ'),
@@ -1026,7 +1026,7 @@ class TestTls11Decryptor(TestCase):
                                                         TlsVersion.TLS11, 16, 20, 16, 128,
                                                         {b'\x00\x16': bytearray(b''), b'\x00\x17': bytearray(b''),
                                                          b'\x00#': bytearray(b''), b'\xff\x01': bytearray(b'\x00'),
-                                                         b'\x00\x1c': bytearray(b'@\x00')})
+                                                         b'\x00\x1c': bytearray(b'@\x00')},0)
 
     def test_rc4_128_decrypt(self):
         client_1 = TlsRecord(bytearray(
