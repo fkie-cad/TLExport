@@ -57,6 +57,10 @@ class Decryptor:
             self.server_cipher = Cipher(self.bulk_alg(self.server_key), mode=None).decryptor()
             self.client_cipher = Cipher(self.bulk_alg(self.client_key), mode=None).decryptor()
 
+        if self.compression_method == 1:
+            self.s_decompressor = zlib.decompressobj(wbits=0)
+            self.c_decompressor = zlib.decompressobj(wbits=0)
+
     def get_cipher_type(self):
         if self.bulk_alg in [AESCCM, AESGCM]:
             self.cipher_type = EncryptionType.AEAD
@@ -256,7 +260,7 @@ class Decryptor:
 
         if self.compression_method == 0x01:
             logging.info(f"compressed plaintext: {decrypted}")
-            decrypted = inflate(decrypted)
+            decrypted = self.inflate(decrypted, isserver)
 
         logging.info(f"plaintext: {decrypted}")
 
@@ -315,7 +319,7 @@ class Decryptor:
 
         if self.compression_method == 0x01:
             logging.info(f"compressed plaintext: {decrypted}")
-            decrypted = inflate(decrypted)
+            decrypted = self.inflate(decrypted, isserver)
 
         logging.info(f"plaintext: {decrypted}")
         return decrypted
@@ -356,7 +360,7 @@ class Decryptor:
 
         if self.compression_method == 0x01:
             logging.info(f"compressed plaintext: {decrypted}")
-            decrypted = inflate(decrypted)
+            decrypted = self.inflate(decrypted, isserver)
 
         logging.info(f"plaintext: {decrypted}")
 
@@ -408,7 +412,7 @@ class Decryptor:
 
         if self.compression_method == 0x01:
             logging.info(f"compressed plaintext: {plaintext}")
-            plaintext = inflate(plaintext)
+            plaintext = self.inflate(plaintext, isserver)
 
         logging.info(f"plaintext: {plaintext}")
 
@@ -455,6 +459,16 @@ class Decryptor:
             self.client_iv = self.client_application_iv
             self.client_seq = 0
 
+    def inflate(self, data, isserver):
+        if isserver:
+            decompressor = self.s_decompressor
+        else:
+            decompressor = self.c_decompressor
+
+        inflated = decompressor.decompress(data)
+        inflated += decompressor.flush()
+        return inflated
+
 
 def byte_xor(a, b):
     diff = len(a) - len(b)
@@ -468,10 +482,4 @@ def byte_xor(a, b):
     return xor_out
 
 
-def inflate(data):
-    decompress = zlib.decompressobj(
-        -zlib.MAX_WBITS  # see above
-    )
-    inflated = decompress.decompress(data)
-    inflated += decompress.flush()
-    return inflated
+
