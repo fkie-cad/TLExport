@@ -45,7 +45,7 @@ Install the python packages:
 - Secure Socket Layer 3.0
 - Transport Layer Security 1.0-1.3
 ### Algorithms:
-- Block Ciphers: AES-CBC, Camellia-CBC, 3DES-CBC, IDEA (Untested)
+- Block Ciphers: AES-CBC, Camellia-CBC, 3DES-CBC, IDEA (Untested, no out of the box by most openssl versions, see [#2])
 - AEAD Ciphers: AES-GCM, AES-CCM, AES-CCM-8, CHACHA20-POLY1305
 - Stream Ciphers: RC4
 - Compression: Zlib/Deflate (Untested)
@@ -61,3 +61,4 @@ If you have any suggestions, questions, or bug reports, please create an issue i
 [3]: https://pypi.org/project/scapy/
 [4]: https://www.python.org/
 [Wiresharks]: https://www.wireshark.org/
+[#2]: https://github.com/fkie-cad/TLExport/issues/2
