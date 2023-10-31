@@ -114,13 +114,13 @@ def run():
                 continue
 
             # using fixed bit for differentiating between QUIC and D-TLS (Second bit of first Byte is always 1 in QUIC)
-            if packet.tls_data[0] >= 64:
-                pass
+            if ((int(packet.tls_data[0]) & 0x40) >> 6) == 1:
                 # QUIC Packet
+                pass
 
             else:
-                pass
                 # D-TLS Packet
+                pass
 
     file.close()
     all_decrypted_sessions = []
