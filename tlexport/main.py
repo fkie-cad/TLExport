@@ -65,7 +65,6 @@ def handle_packet(packet: Packet, args, keylog, sessions: list[Session], portmap
 
 
 def run():
-
     args = arg_parser_init()
     portmap = get_port_map(args)
 
@@ -77,7 +76,6 @@ def run():
     server_ports.extend([int(x) for x in args.serverports])
     logging.info(f"Checking for TLS Traffic on these ports: {server_ports}")
 
-
     if args.sslkeylog is not None:
         keylog.extend(keylog_reader.read_keylog_from_file(args.sslkeylog))
 
@@ -87,6 +85,7 @@ def run():
         pcap_reader = dpkt.pcap.Reader(file)
     else:
         pcap_reader = Reader(file)
+
     for ts, buf in pcap_reader:
         packet = Packet(buf, ts)
 
@@ -94,20 +93,34 @@ def run():
             keylog.extend(keylog_reader.get_keys_from_string(buf.decode('ascii')))
             continue
 
-        if len(packet.tls_data) == 0:
-            continue
+        if packet.tcp_packet:
+            if len(packet.tls_data) == 0:
+                continue
 
-        if not args.checksumTest:
-            checksum_test = True
-        else:
-            checksum_test = calculate_checksum_tcp(packet)
+            if not args.checksumTest:
+                checksum_test = True
+            else:
+                checksum_test = calculate_checksum_tcp(packet)
 
-        if not checksum_test:
-            logging.info("")
-            logging.info(f"bad checksum discarded Packet {packet.get_params()}")
-            logging.info("")
-        if packet.tls_packet and checksum_test:
-            handle_packet(packet, args, keylog, sessions, portmap)
+            if not checksum_test:
+                logging.info("")
+                logging.info(f"bad checksum discarded Packet {packet.get_params()}")
+                logging.info("")
+            if packet.tcp_packet and checksum_test:
+                handle_packet(packet, args, keylog, sessions, portmap)
+
+        elif packet.udp_packet:
+            if len(packet.tls_data) == 0:
+                continue
+
+            # using fixed bit for differentiating between QUIC and D-TLS (Second bit of first Byte is always 1 in QUIC)
+            if packet.tls_data[0] >= 64:
+                pass
+                # QUIC Packet
+
+            else:
+                pass
+                # D-TLS Packet
 
     file.close()
     all_decrypted_sessions = []
