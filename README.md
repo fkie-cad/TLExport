@@ -1,3 +1,6 @@
+![logo.svg](logo.svg)
+
+
 # TLExport
 TLExport (TLE) is a tool for decrypting TLS-Traffic and exporting the 
 traffic into unencrypted TCP/UDP traffic. The goal is to provide support to network analysis tools, 
@@ -62,3 +65,4 @@ If you have any suggestions, questions, or bug reports, please create an issue i
 [4]: https://www.python.org/
 [Wiresharks]: https://www.wireshark.org/
 [#2]: https://github.com/fkie-cad/TLExport/issues/2
+
