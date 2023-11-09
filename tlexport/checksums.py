@@ -30,6 +30,44 @@ def ones_complement_checksum(byte_arr: bytearray) -> bytearray:
     return out_arr
 
 
+def calculate_checksum_udp(packet: Packet):
+    logging.info("")
+    logging.info("UDP Checksum")
+    pseudo_header = bytearray(b'')
+
+    # IPv4
+    if not packet.ipv6_packet:
+        pseudo_header.extend(packet.ip_src)
+        pseudo_header.extend(packet.ip_dst)
+        pseudo_header.extend(b'\x00')
+        pseudo_header.extend(packet.ip.p.to_bytes(1, 'big'))
+        pseudo_header.extend(len(packet.tcp).to_bytes(2, 'big'))
+
+    # IPv6
+    if packet.ipv6_packet:
+        pseudo_header.extend(packet.ip_src)
+        pseudo_header.extend(packet.ip_dst)
+        pseudo_header.extend(len(packet.udp).to_bytes(4, 'big'))
+        pseudo_header.extend(b'\x00\x00\x00')
+        pseudo_header.extend(packet.ip.nxt.to_bytes(1, 'big'))
+
+    udp_data = bytearray(bytes(packet.udp))
+
+    udp_data[6:8] = bytearray(b"\x00\x00")
+
+    logging.info(f"pseudo header: 0x{pseudo_header.hex()}")
+    logging.info(f"tcp data: 0x{udp_data.hex()}")
+
+    pseudo_header.extend(udp_data)
+
+    calculated_checksum = ones_complement_checksum(pseudo_header)
+
+    packet_checksum = packet.udp.sum.to_bytes(2, 'big')
+    logging.info(f"expected checksum: 0x{calculated_checksum.hex()}, packet checksum: 0x{packet_checksum.hex()}")
+
+    return calculated_checksum == packet_checksum
+
+
 def calculate_checksum_tcp(packet: Packet):
     logging.info("")
     logging.info("TCP Checksum")

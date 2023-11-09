@@ -6,12 +6,14 @@ from tlexport.packet import Packet
 import tlexport.keylog_reader as keylog_reader
 from tlexport.dpkt_dsb import Reader
 from tlexport.session import Session
-from tlexport.checksums import calculate_checksum_tcp
+from tlexport.checksums import calculate_checksum_tcp, calculate_checksum_udp
 from tlexport.log import set_logger
+from tlexport.quic_session import QuicSession
 
 server_ports = [443]
 keylog = []
 sessions = []
+quic_sessions = []
 
 
 def arg_parser_init():
@@ -19,7 +21,7 @@ def arg_parser_init():
     parser.add_argument("-p", "--serverports", help="additional ports to test for TLS-Connections", nargs="+",
                         default=[443])
     parser.add_argument("-i", "--infile", help="path of input file",
-                        default="in.pcapng")
+                        default="pcaps_und_keylogs/checktest.pcapng")
     parser.add_argument("-o", "--outfile", help="path of output file", default="out.pcapng")
     parser.add_argument("-s", "--sslkeylog", help="path to sslkeylogfile")
     # default False due to checksum offloading producing wrong checksums in Packet Capture
@@ -54,7 +56,7 @@ def get_port_map(parser):
     return port_map
 
 
-def handle_packet(packet: Packet, args, keylog, sessions: list[Session], portmap):
+def handle_packet(packet: Packet, keylog, sessions: list[Session], portmap):
     for session in sessions:
         if session.matches_session(packet):
             session.handle_packet(packet)
@@ -62,6 +64,16 @@ def handle_packet(packet: Packet, args, keylog, sessions: list[Session], portmap
 
     if packet.dport in server_ports or packet.sport in server_ports:
         sessions.append(Session(packet, server_ports, keylog, portmap))
+
+
+def handle_quic_packet(packet, keylog, quic_sessions: list[QuicSession], portmap):
+    for quic_session in quic_sessions:
+        if quic_session.matches_session(packet):
+            quic_session.packet_buffer.append(packet)
+            return
+
+    if packet.dport in server_ports or packet.sport in server_ports:
+        quic_sessions.append(QuicSession(packet, server_ports, keylog, portmap))
 
 
 def run():
@@ -107,16 +119,27 @@ def run():
                 logging.info(f"bad checksum discarded Packet {packet.get_params()}")
                 logging.info("")
             if packet.tcp_packet and checksum_test:
-                handle_packet(packet, args, keylog, sessions, portmap)
+                handle_packet(packet, keylog, sessions, portmap)
 
         elif packet.udp_packet:
             if len(packet.tls_data) == 0:
                 continue
 
+            if not args.checksumTest:
+                checksum_test = True
+            else:
+                checksum_test = calculate_checksum_udp(packet)
+
+            if not checksum_test:
+                logging.info("")
+                logging.info(f"bad checksum discarded Packet {packet.get_params()}")
+                logging.info("")
+                continue
+
             # using fixed bit for differentiating between QUIC and D-TLS (Second bit of first Byte is always 1 in QUIC)
             if ((int(packet.tls_data[0]) & 0x40) >> 6) == 1:
                 # QUIC Packet
-                pass
+                handle_quic_packet(packet, keylog, quic_sessions, portmap)
 
             else:
                 # D-TLS Packet
@@ -126,6 +149,10 @@ def run():
     all_decrypted_sessions = []
     for session in sessions:
         all_decrypted_sessions.extend(session.decrypt())
+
+    for quic_session in quic_sessions:
+        #decrypt quic
+        pass
 
     file = open(args.outfile, "wb")
 

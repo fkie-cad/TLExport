@@ -69,8 +69,12 @@ class Packet:
             src_address = IPv6Address(self.ip_src)
             dst_address = IPv6Address(self.ip_dst)
 
+        if self.tcp_packet:
+            return (f"source: {src_address} {self.sport}, "
+                    f"destination: {dst_address} {self.dport}, "
+                    f"sequence number: {self.seq}, timestamp: {self.timestamp}")
 
-
-        return (f"source: {src_address} {self.sport}, "
-                f"destination: {dst_address} {self.dport}, "
-                f"sequence number: {self.seq}")
+        else:
+            return (f"source: {src_address} {self.sport}, "
+                    f"destination: {dst_address} {self.dport}, "
+                    f"timestamp: {self.timestamp}")

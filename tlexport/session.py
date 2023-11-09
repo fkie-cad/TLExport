@@ -15,7 +15,6 @@ from cryptography.hazmat.primitives.ciphers.aead import AESCCM, AESGCM
 
 class Session:
     def __init__(self, packet: Packet, server_ports, keylog, portmap) -> None:
-        self.start_packet = packet
         self.keylog = keylog
 
         self.set_client_and_server_ports(packet, server_ports)
