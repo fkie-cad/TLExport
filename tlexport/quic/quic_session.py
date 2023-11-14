@@ -1,8 +1,13 @@
 from tlexport.packet import Packet
+from tlexport.key import Key
+from tlexport.quic.quic_key_generation import dev_quic_keys
+from cryptography.hazmat.primitives.hashes import SHA256
+import pylsqpack
+from tlexport.key_derivator import dev_tls_13_keys
 
 
 class QuicSession:
-    def __init__(self, packet: Packet, server_ports, keylog, portmap):
+    def __init__(self, packet: Packet, server_ports, keylog: list[Key], portmap):
         self.keylog = keylog
 
         self.ipv6 = packet.ipv6_packet
@@ -11,6 +16,15 @@ class QuicSession:
 
         self.packet_buffer = []
         self.packet_buffer.append(packet)
+
+        self.server_decoder = pylsqpack.Decoder(4096, 16)
+        self.client_decoder = pylsqpack.Decoder(4096, 16)
+        secret_list = []
+
+
+
+    def decrypt(self):
+        pass
 
     def set_server_client_address(self, packet, server_ports):
         if packet.sport in server_ports:

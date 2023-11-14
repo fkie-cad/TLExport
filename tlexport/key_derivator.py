@@ -162,7 +162,8 @@ def dev_tls_13_keys(secret_list, key_length, hash_fun: hashes.HashAlgorithm):
 
     logging_string = ""
     for k in keys:
-        logging_string += f"{k}: {keys[k].hex()}\n"
+        if keys[k] is not None:
+            logging_string += f"{k}: {keys[k].hex()}\n"
 
     logging.info(f"{logging_string}")
 
