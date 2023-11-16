@@ -9,3 +9,10 @@ def decode_variable_length_int(variable_integer: bytes):
         v = (v << 8) + variable_integer[i]
 
     return v
+
+def get_variable_length_int_length(first_byte_of_variable_int: bytes):
+    v = first_byte_of_variable_int[0]
+    prefix = v >> 6
+    length = 1 << prefix
+
+    return length
