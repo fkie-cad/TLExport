@@ -9,14 +9,12 @@ def dev_quic_keys(key_length, hp_key_length, secret_list, hash_fun: hashes.HashA
     iv_info = make_info(b"quic iv", 12)
     hp_info = make_info(b"quic hp", hp_key_length)
 
-
     client_early_traffic_key = None
     client_early_traffic_iv = None
     server_early_traffic_key = None
     server_early_traffic_iv = None
     client_early_traffic_hp = None
     server_early_traffic_hp = None
-
 
     for secret in secret_list:
         if secret.label == "CLIENT_HANDSHAKE_TRAFFIC_SECRET":
@@ -48,8 +46,6 @@ def dev_quic_keys(key_length, hp_key_length, secret_list, hash_fun: hashes.HashA
             server_early_traffic_key = HKDFExpand(hash_fun, key_length, key_info).derive(bytes.fromhex(secret.value))
             server_early_traffic_iv = HKDFExpand(hash_fun, 12, iv_info).derive(bytes.fromhex(secret.value))
             server_early_traffic_hp = HKDFExpand(hash_fun, hp_key_length, hp_info).derive(bytes.fromhex(secret.value))
-
-
 
     keys = {
         "client_handshake_traffic_key": client_handshake_key,
@@ -83,32 +79,31 @@ def dev_quic_keys(key_length, hp_key_length, secret_list, hash_fun: hashes.HashA
 
     return keys
 
-def dev_initial_keys(connection_id, key_length, hp_key_length):
+
+def dev_initial_keys(connection_id, key_length, hp_key_length, hash_fun):
     initial_salt = bytes.fromhex("38762cf7f55934b34d179ae6a4c80cadccbb7f0a")
 
-    initial_secret = HKDF(hashes.SHA256(), salt=initial_salt, length=32, info=None)._extract(connection_id)
+    initial_secret = HKDF(hash_fun, salt=initial_salt, length=32, info=None)._extract(connection_id)
 
 
-    key_info = make_info(b"quic key", key_length)
-    iv_info = make_info(b"quic iv", 12)
-    hp_info = make_info(b"quic hp", hp_key_length)
-
-    client_initial = HKDFExpand(hashes.SHA256(), 32, info=make_info(b"client in", 32)).derive(initial_secret)
-    server_initial = HKDFExpand(hashes.SHA256(), 32, info=make_info(b"server in", 32)).derive(initial_secret)
+    client_initial = HKDFExpand(hash_fun, 32, info=make_info(b"client in", 32)).derive(initial_secret)
+    server_initial = HKDFExpand(hash_fun, 32, info=make_info(b"server in", 32)).derive(initial_secret)
     initial_keys = {
-        "cl_initial_key": HKDFExpand(hashes.SHA256(), key_length, make_info(b"quic key", key_length)).derive(client_initial),
-        "cl_initial_iv": HKDFExpand(hashes.SHA256(), 12, make_info(b"quic iv", 12)).derive(client_initial),
-        "cl_initial_hp": HKDFExpand(hashes.SHA256(), key_length, make_info(b"quic hp", key_length)).derive(client_initial),
-        "sv_initial_key": HKDFExpand(hashes.SHA256(), key_length, make_info(b"quic key", key_length)).derive(
+        "client_initial_key": HKDFExpand(hash_fun, key_length, make_info(b"quic key", key_length)).derive(
+            client_initial),
+        "client_initial_iv": HKDFExpand(hash_fun, 12, make_info(b"quic iv", 12)).derive(client_initial),
+        "client_initial_hp": HKDFExpand(hash_fun, key_length, make_info(b"quic hp", hp_key_length)).derive(
+            client_initial),
+        "server_initial_key": HKDFExpand(hash_fun, key_length, make_info(b"quic key", key_length)).derive(
             server_initial),
-        "sv_initial_iv": HKDFExpand(hashes.SHA256(), 12, make_info(b"quic iv", 12)).derive(
+        "server_initial_iv": HKDFExpand(hash_fun, 12, make_info(b"quic iv", 12)).derive(
             server_initial),
-        "sv_initial_hp": HKDFExpand(hashes.SHA256(), key_length, make_info(b"quic hp", key_length)).derive(
+        "server_initial_hp": HKDFExpand(hash_fun, key_length, make_info(b"quic hp", hp_key_length)).derive(
             server_initial),
     }
 
-    for key in initial_keys:
-        print(key, initial_keys[key].hex())
+    return initial_keys
+
 
 def make_info(label, key_length):
     labellen = len(label) + 6
