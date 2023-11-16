@@ -48,8 +48,8 @@ def dev_quic_keys(key_length, hp_key_length, secret_list, hash_fun: hashes.HashA
             server_early_traffic_hp = HKDFExpand(hash_fun, hp_key_length, hp_info).derive(bytes.fromhex(secret.value))
 
     keys = {
-        "client_handshake_traffic_key": client_handshake_key,
-        "server_handshake_traffic_key": server_handshake_key,
+        "client_handshake_key": client_handshake_key,
+        "server_handshake_key": server_handshake_key,
         "client_handshake_iv": client_handshake_iv,
         "server_handshake_iv": server_handshake_iv,
         "client_handshake_hp": client_handshake_hp,
