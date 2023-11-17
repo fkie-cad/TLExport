@@ -1,5 +1,4 @@
-
-def decode_variable_length_int(variable_integer: bytes):
+def decode_variable_length_int(variable_integer: bytes) -> int:
     v = variable_integer[0]
     prefix = v >> 6
     length = 1 << prefix
@@ -10,7 +9,8 @@ def decode_variable_length_int(variable_integer: bytes):
 
     return v
 
-def get_variable_length_int_length(first_byte_of_variable_int: bytes):
+
+def get_variable_length_int_length(first_byte_of_variable_int: bytes) -> int:
     v = first_byte_of_variable_int[0]
     prefix = v >> 6
     length = 1 << prefix
