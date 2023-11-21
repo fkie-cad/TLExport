@@ -5,10 +5,10 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDFExpand, HKDF
 from cryptography.hazmat.primitives.hashes import SHA256
 
 
-def dev_quic_keys(key_length, hp_key_length, secret_list, hash_fun: hashes.HashAlgorithm):
+def dev_quic_keys(key_length, secret_list, hash_fun: hashes.HashAlgorithm):
     key_info = make_info(b"quic key", key_length)
     iv_info = make_info(b"quic iv", 12)
-    hp_info = make_info(b"quic hp", hp_key_length)
+    hp_info = make_info(b"quic hp", key_length)
 
     client_early_traffic_key = None
     client_early_traffic_iv = None
@@ -21,32 +21,32 @@ def dev_quic_keys(key_length, hp_key_length, secret_list, hash_fun: hashes.HashA
         if secret.label == "CLIENT_HANDSHAKE_TRAFFIC_SECRET":
             client_handshake_key = HKDFExpand(hash_fun, key_length, key_info).derive(bytes.fromhex(secret.value))
             client_handshake_iv = HKDFExpand(hash_fun, 12, iv_info).derive(bytes.fromhex(secret.value))
-            client_handshake_hp = HKDFExpand(hash_fun, hp_key_length, hp_info).derive(bytes.fromhex(secret.value))
+            client_handshake_hp = HKDFExpand(hash_fun, key_length, hp_info).derive(bytes.fromhex(secret.value))
 
         elif secret.label == "SERVER_HANDSHAKE_TRAFFIC_SECRET":
             server_handshake_key = HKDFExpand(hash_fun, key_length, key_info).derive(bytes.fromhex(secret.value))
             server_handshake_iv = HKDFExpand(hash_fun, 12, iv_info).derive(bytes.fromhex(secret.value))
-            server_handshake_hp = HKDFExpand(hash_fun, hp_key_length, hp_info).derive(bytes.fromhex(secret.value))
+            server_handshake_hp = HKDFExpand(hash_fun, key_length, hp_info).derive(bytes.fromhex(secret.value))
 
         elif secret.label == "CLIENT_TRAFFIC_SECRET_0":
             client_application_key = HKDFExpand(hash_fun, key_length, key_info).derive(bytes.fromhex(secret.value))
             client_application_iv = HKDFExpand(hash_fun, 12, iv_info).derive(bytes.fromhex(secret.value))
-            client_application_hp = HKDFExpand(hash_fun, hp_key_length, hp_info).derive(bytes.fromhex(secret.value))
+            client_application_hp = HKDFExpand(hash_fun, key_length, hp_info).derive(bytes.fromhex(secret.value))
 
         elif secret.label == "SERVER_TRAFFIC_SECRET_0":
             server_application_key = HKDFExpand(hash_fun, key_length, key_info).derive(bytes.fromhex(secret.value))
             server_application_iv = HKDFExpand(hash_fun, 12, iv_info).derive(bytes.fromhex(secret.value))
-            server_application_hp = HKDFExpand(hash_fun, hp_key_length, hp_info).derive(bytes.fromhex(secret.value))
+            server_application_hp = HKDFExpand(hash_fun, key_length, hp_info).derive(bytes.fromhex(secret.value))
 
         elif secret.label == "CLIENT_EARLY_TRAFFIC_SECRET":
             client_early_traffic_key = HKDFExpand(hash_fun, key_length, key_info).derive(bytes.fromhex(secret.value))
             client_early_traffic_iv = HKDFExpand(hash_fun, 12, iv_info).derive(bytes.fromhex(secret.value))
-            client_early_traffic_hp = HKDFExpand(hash_fun, hp_key_length, hp_info).derive(bytes.fromhex(secret.value))
+            client_early_traffic_hp = HKDFExpand(hash_fun, key_length, hp_info).derive(bytes.fromhex(secret.value))
 
         elif secret.label == "SERVER_EARLY_TRAFFIC_SECRET":
             server_early_traffic_key = HKDFExpand(hash_fun, key_length, key_info).derive(bytes.fromhex(secret.value))
             server_early_traffic_iv = HKDFExpand(hash_fun, 12, iv_info).derive(bytes.fromhex(secret.value))
-            server_early_traffic_hp = HKDFExpand(hash_fun, hp_key_length, hp_info).derive(bytes.fromhex(secret.value))
+            server_early_traffic_hp = HKDFExpand(hash_fun, key_length, hp_info).derive(bytes.fromhex(secret.value))
 
     keys = {
         "client_handshake_key": client_handshake_key,
@@ -81,7 +81,7 @@ def dev_quic_keys(key_length, hp_key_length, secret_list, hash_fun: hashes.HashA
     return keys
 
 
-def dev_initial_keys(connection_id):
+def dev_initial_keys(connection_id: bytes):
     key_length = 16
     hp_key_length = 16
     hash_fun = SHA256()
