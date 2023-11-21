@@ -155,6 +155,10 @@ class StreamFrame:
         self.length = 1
         self.length += get_variable_length_int_length(payload[1:2])
         self.stream_id = decode_variable_length_int(payload[1:self.length])
+
+        self.server_initiated = bool(self.stream_id & 1)
+        self.stream_type = bool((self.stream_id >> 1) & 1)
+
         index = self.length
 
         self.stream_data = None

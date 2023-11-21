@@ -2,6 +2,7 @@ import logging
 
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDFExpand, HKDF
+from cryptography.hazmat.primitives.hashes import SHA256
 
 
 def dev_quic_keys(key_length, hp_key_length, secret_list, hash_fun: hashes.HashAlgorithm):
@@ -80,7 +81,10 @@ def dev_quic_keys(key_length, hp_key_length, secret_list, hash_fun: hashes.HashA
     return keys
 
 
-def dev_initial_keys(connection_id, key_length, hp_key_length, hash_fun):
+def dev_initial_keys(connection_id):
+    key_length = 16
+    hp_key_length = 16
+    hash_fun = SHA256()
     initial_salt = bytes.fromhex("38762cf7f55934b34d179ae6a4c80cadccbb7f0a")
 
     initial_secret = HKDF(hash_fun, salt=initial_salt, length=32, info=None)._extract(connection_id)
