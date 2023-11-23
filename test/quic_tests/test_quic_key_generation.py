@@ -16,7 +16,7 @@ class TestQuicKeyGen(TestCase):
         ]
 
     def test_dev_initial_keys(self):
-        initial_keys = dev_initial_keys(self.destination_connection_id, 16, 16, SHA256())
+        initial_keys = dev_initial_keys(self.destination_connection_id)
         self.assertEqual(initial_keys["client_initial_key"], bytes.fromhex("1f369613dd76d5467730efcbe3b1a22d"))
         self.assertEqual(initial_keys["client_initial_iv"], bytes.fromhex("fa044b2f42a3fd3b46fb255c"))
         self.assertEqual(initial_keys["client_initial_hp"], bytes.fromhex("9f50449e04a0e810283a1e9933adedd2"))
@@ -25,7 +25,7 @@ class TestQuicKeyGen(TestCase):
         self.assertEqual(initial_keys["server_initial_hp"], bytes.fromhex("c206b8d9b9f0f37644430b490eeaa314"))
 
     def test_quic_tls_keys(self):
-        quic_keys = dev_quic_keys(16, 16, self.keylog, SHA256())
+        quic_keys = dev_quic_keys(16,  self.keylog, SHA256())
         # Handshake Keys
         self.assertEqual(quic_keys["client_handshake_key"], bytes.fromhex("30a7e816f6a1e1b3434cf39cf4b415e7"))
         self.assertEqual(quic_keys["server_handshake_key"], bytes.fromhex("17abbf0a788f96c6986964660414e7ec"))

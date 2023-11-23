@@ -13,12 +13,8 @@ class TestVariableLengthInt(TestCase):
         self.assertEqual(37, decode_variable_length_int(bytes.fromhex("25")))
         self.assertEqual(37, decode_variable_length_int(bytes.fromhex("80000025")))
 
-
     def test_get_variable_length_int_length(self):
         self.assertEqual(1, get_variable_length_int_length(b"\x3F"))
         self.assertEqual(2, get_variable_length_int_length(b"\x60"))
         self.assertEqual(4, get_variable_length_int_length(b"\xA0"))
         self.assertEqual(8, get_variable_length_int_length(b"\xff"))
-
-
-

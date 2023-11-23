@@ -1,8 +1,5 @@
-from typing import List
 from unittest import TestCase
 import tlexport.quic.quic_frame as frames
-from tlexport.quic.quic_frame import Frame
-from typing import Type
 
 
 class TestQuicFrameGeneration(TestCase):
@@ -14,7 +11,8 @@ class TestQuicFrameGeneration(TestCase):
 
     def test_crypto_frame(self):
         parsed_frames = frames.parse_frames(bytes.fromhex(
-            "0200414800000600405a020000560303b7be3c8d397996b7264f25fe5f624f4ac37e901a5acd517d408972a6ddb1cda800130100002e00330024001d0020813355ac9760c2dc4e7df93de0d5d9c120f58f38a381706c73d6177705e24a3c002b00020304")+bytes.fromhex("0000000000010001"))
+            "0200414800000600405a020000560303b7be3c8d397996b7264f25fe5f624f4ac37e901a5acd517d408972a6ddb1cda800130100002e00330024001d0020813355ac9760c2dc4e7df93de0d5d9c120f58f38a381706c73d6177705e24a3c002b00020304") + bytes.fromhex(
+            "0000000000010001"))
 
         ack_frame: frames.AckFrame = parsed_frames[0]
         self.assertEqual(0, ack_frame.largest_acknowledged)
@@ -79,7 +77,7 @@ class TestQuicFrameGeneration(TestCase):
         self.assertEqual(65, token_frame.token_length)
         self.assertEqual(bytes.fromhex(
             "0095028230a8f84f9402b7e252734ad7cc45d4e291c4909931164d2c15d769c0504390b2198dc477ba147f7184c67ab5e27f69667733df75fd6bb8ff8d8ca0273b"),
-                         token_frame.token)
+            token_frame.token)
         new_connection_id_frame: frames.NewConnectionIdFrame = parsed_frames[2]
         self.assertEqual(1, new_connection_id_frame.sequence_number)
         self.assertEqual(0, new_connection_id_frame.retire_prior_to)
