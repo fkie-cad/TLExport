@@ -22,13 +22,24 @@ def parse_frames(payload: bytes):
 
 
 class Frame:
+    frame_type = None
+    length = None
     def __init__(self, _payload):
         pass
 
 
-class PaddingFrame(Frame):
+class PaddingFrame:
     frame_type = 0x00
-    length = 0x01
+
+    def __init__(self, payload):
+        self.length = 1
+        for i, byte in enumerate(payload):
+            if byte != 0:
+                self.length = i
+                return
+
+        self.length = len(payload)
+
 
 
 class PingFrame(Frame):
@@ -157,7 +168,7 @@ class StreamFrame:
         self.stream_id = decode_variable_length_int(payload[1:self.length])
 
         self.server_initiated = bool(self.stream_id & 1)
-        self.stream_type = bool((self.stream_id >> 1) & 1)
+        self.stream_unidirectional = bool((self.stream_id >> 1) & 1)
 
         index = self.length
 
