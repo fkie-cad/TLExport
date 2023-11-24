@@ -26,6 +26,8 @@ class QuicSession:
         self.client_decoder = pylsqpack.Decoder(4096, 16)
         secret_list = []
 
+        self.output_buffer = []
+
         self.decryptors = {}
         self.keys: dict[str, bytes] = {}
 
