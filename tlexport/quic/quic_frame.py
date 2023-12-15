@@ -11,7 +11,11 @@ def parse_frames(payload: bytes):
         for k in keys:
             if payload[0] in k:
                 key = k
-        frame = frame_type[key](payload)
+
+        if key != 0:
+            frame = frame_type.get(key)(payload)
+        else:
+            frame = GenericFrame(payload)
 
         frames.append(frame)
         frame_length = frame.length
@@ -24,6 +28,7 @@ def parse_frames(payload: bytes):
 class Frame:
     frame_type = None
     length = None
+
     def __init__(self, _payload):
         pass
 
@@ -40,6 +45,15 @@ class PaddingFrame:
 
         self.length = len(payload)
 
+
+class GenericFrame:
+    def __init__(self, payload):
+        self.length = 1
+        self.length += get_variable_length_int_length(payload[1:2])
+        self.frame_length = decode_variable_length_int(payload[1: self.length])
+        self.data = payload[1 + self.length: 1 + self.length + self.frame_length]
+
+        self.length = self.length + self.frame_length
 
 
 class PingFrame(Frame):
