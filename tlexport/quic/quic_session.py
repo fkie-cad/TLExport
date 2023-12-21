@@ -1,5 +1,7 @@
 import logging
+from tlexport.quic.quic_dissector import QuicDissector
 from typing import Dict
+from tlexport.quic.quic_packet import QuicPacket
 
 from tlexport.packet import Packet
 from tlexport.keylog_reader import Key
@@ -12,15 +14,20 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM, ChaCha20Poly1305
 
 
 class QuicSession:
-    def __init__(self, packet: Packet, server_ports, keylog: list[Key], portmap):
+    def __init__(self, packet: Packet, quic_packet: QuicPacket, server_ports, keylog: list[Key], portmap):
         self.keylog = keylog
 
-        self.ipv6 = packet.ipv6_packet
+        self.ipv6: bool = packet.ipv6_packet
 
         self.set_server_client_address(packet, server_ports)
 
+        self.client_cids = []
+        self.server_cids = []
+
         self.packet_buffer = []
         self.packet_buffer.append(packet)
+        self.packet_buffer_quic = []
+        self.packet_buffer_quic.append(quic_packet)
 
         self.server_decoder = pylsqpack.Decoder(4096, 16)
         self.client_decoder = pylsqpack.Decoder(4096, 16)
@@ -40,10 +47,9 @@ class QuicSession:
         self.early_traffic_keys = False
 
     def decrypt(self):
-        for packet in self.packet_buffer:
-            pass
+        pass
 
-    def set_server_client_address(self, packet, server_ports):
+    def set_server_client_address(self, packet, server_ports) -> bool:  # Returns True if packet is from server, else it returns False
         if packet.sport in server_ports:
             self.server_ip = packet.ip_src
             self.server_port = packet.sport
@@ -52,6 +58,8 @@ class QuicSession:
             self.client_ip = packet.ip_dst
             self.client_port = packet.dport
             self.client_mac_addr = packet.ethernet_dst
+
+            return True
 
         else:
             self.server_ip = packet.ip_dst
@@ -62,14 +70,35 @@ class QuicSession:
             self.client_port = packet.sport
             self.client_mac_addr = packet.ethernet_src
 
-    def matches_session(self, packet: Packet):
-        if (packet.ip_src == self.server_ip and packet.sport == self.server_port
-                and packet.ip_dst == self.client_ip and packet.dport == self.client_port):
+            return False
+
+    def match_cid(self, data: bytes) -> tuple | None:   # Returns (cid, 0) if cid is from client, (cid, 1) if cid is from server
+        for cid in self.client_cids + self.server_cids:
+            print(bytearray(data[1: len(cid) + 1]))
+            if bytearray(data[1: len(cid) + 1]) == cid:    # Offset of 1 cause the dcid of a short header packet starts there
+                if cid in self.client_cids:
+                    return cid, 0
+                elif cid in self.server_cids:
+                    return cid, 1
+                else:
+                    return None  # CID is unknown/not found
+
+    def matches_session_dgram(self, ip_src, ip_dst, sport, dport):
+
+        if (ip_src == self.server_ip and sport == self.server_port
+                and ip_dst == self.client_ip and dport == self.client_port):
             return True
-        elif (packet.ip_src == self.client_ip and packet.sport == self.client_port
-              and packet.ip_dst == self.server_ip and packet.dport == self.server_port):
+
+        elif (ip_src == self.client_ip and sport == self.client_port
+              and ip_dst == self.server_ip and dport == self.server_port):
             return True
         return False
+
+    def matches_session_quic(self, cid):
+        if cid in self.client_cids + self.server_cids:
+            return True
+        else:
+            return False
 
     def set_initial_decryptor(self, dcid: bytes):
         keys: dict[str, bytes] = dev_initial_keys(dcid)

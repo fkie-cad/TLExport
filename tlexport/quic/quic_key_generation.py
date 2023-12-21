@@ -3,6 +3,9 @@ import logging
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDFExpand, HKDF
 from cryptography.hazmat.primitives.hashes import SHA256
+from cryptography.hazmat.primitives.ciphers import Cipher
+from cryptography.hazmat.primitives.ciphers.algorithms import AES
+from cryptography.hazmat.primitives.ciphers.modes import ECB
 
 
 def dev_quic_keys(key_length, secret_list, hash_fun: hashes.HashAlgorithm):
@@ -89,7 +92,6 @@ def dev_initial_keys(connection_id: bytes):
 
     initial_secret = HKDF(hash_fun, salt=initial_salt, length=32, info=None)._extract(connection_id)
 
-
     client_initial = HKDFExpand(hash_fun, 32, info=make_info(b"client in", 32)).derive(initial_secret)
     server_initial = HKDFExpand(hash_fun, 32, info=make_info(b"server in", 32)).derive(initial_secret)
     initial_keys = {
@@ -110,5 +112,12 @@ def dev_initial_keys(connection_id: bytes):
 
 
 def make_info(label, key_length):
-    labellen = len(label) + 6
-    return key_length.to_bytes(2, 'big') + labellen.to_bytes(1, 'big') + b"tls13 " + label + b"\x00"
+    lable_len = len(label) + 6
+    return key_length.to_bytes(2, 'big') + lable_len.to_bytes(1, 'big') + b"tls13 " + label + b"\x00"
+
+
+def make_hp_mask(hp_key: bytes, sample: bytes) -> bytes:    # TODO: Add ChaCha20Poly1305 mask generation
+    encryptor = Cipher(AES(hp_key), ECB()).encryptor()
+    mask = encryptor.update(sample) + encryptor.finalize()
+    return mask
+

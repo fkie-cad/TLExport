@@ -9,7 +9,7 @@
 /tlexport/pcaps_und_keylogs/test_pcap.pcapng
 /crypt_recompile/
 /tlexport/test_out.pcapng
-/tlexport/pcaps_und_keylogs/hopefully_retries.pcapng
+/tlexport/pcaps_und_keylogs/quic_pcaps/hopefully_retries.pcapng
 /tlexport/pcaps_und_keylogs/checktest.pcapng
 /tlexport/pcaps_und_keylogs/cloudflare_quic.pcapng
 /tlexport/pcaps_und_keylogs/http3_test.log

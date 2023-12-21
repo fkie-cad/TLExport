@@ -7,6 +7,7 @@ import tlexport.key_derivator as key_derivator
 import tlexport.cipher_suite_parser as cipher_suite_parser
 from tlexport.decryptor import Decryptor
 from tlexport.output_builder import OutputBuilder
+from tlexport.quic import quic_dissector
 
 from ipaddress import IPv6Address, IPv4Address
 from cryptography.hazmat.primitives.ciphers.algorithms import AES, TripleDES, IDEA, Camellia

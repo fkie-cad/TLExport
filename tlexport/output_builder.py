@@ -54,6 +54,8 @@ class OutputBuilder:
                 self.conn_reset = False
 
             decrypted = record[0]
+            if decrypted is None:
+                decrypted = b'123345'
             ts = []
             for packet in record[1].metadata:
                 ts.append(packet.timestamp)

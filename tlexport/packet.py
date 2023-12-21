@@ -2,6 +2,8 @@ import dpkt
 from ipaddress import IPv6Address, IPv4Address
 
 # data class for network packets and metadata
+
+
 class Packet:
     def __init__(self, packet, timestamp) -> None:
         self.timestamp = timestamp
@@ -53,10 +55,6 @@ class Packet:
 
             self.udp_packet = True
             return
-
-
-
-
 
 
 
