@@ -9,6 +9,7 @@ class QuicTlsSession:
         self.client_random = None
         self.alpn = None
         self.tls_vers = None
+        self.server_hello_seen = False
 
         self.server_record_buffer = b""
         self.client_record_buffer = b""
@@ -62,6 +63,7 @@ class QuicTlsSession:
         record = record[3:]
 
         self.get_extensions(record)
+        self.server_hello_seen = True
 
     def handle_encrypted_extensions(self, record):
         if len(record) < 6:

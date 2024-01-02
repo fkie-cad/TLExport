@@ -116,7 +116,6 @@ def dev_initial_keys(connection_id: bytes):
     return initial_keys
 
 
-# TODO test
 def key_update(decryptor_n: QuicDecryptor, hash_fun: hashes.HashAlgorithm, key_length: int, cipher) -> QuicDecryptor:
     key_info = make_info(b"quic key", key_length)
     iv_info = make_info(b"quic iv", 12)

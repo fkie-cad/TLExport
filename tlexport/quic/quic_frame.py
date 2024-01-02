@@ -7,12 +7,12 @@ def parse_frames(payload: bytes):
     frames = []
     keys = frame_type.keys()
     while len(payload) != 0:
-        key = 0x00
+        key = 0xff
         for k in keys:
             if payload[0] in k:
                 key = k
 
-        if key != 0:
+        if key != 0xff:
             frame = frame_type.get(key)(payload)
         else:
             frame = GenericFrame(payload)

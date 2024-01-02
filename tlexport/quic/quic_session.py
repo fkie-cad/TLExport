@@ -1,16 +1,16 @@
 import logging
 from typing import Type, cast
 
-import pylsqpack
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM, ChaCha20Poly1305, AESCCM
 from cryptography.hazmat.primitives.hashes import SHA256, SHA384
 
 from tlexport.keylog_reader import Key
 from tlexport.packet import Packet
 from tlexport.quic.quic_decryptor import QuicDecryptor
-from tlexport.quic.quic_frame import Frame
+from tlexport.quic.quic_frame import CryptoFrame, StreamFrame,  NewConnectionIdFrame, ConnectionCloseFrame, Frame
 from tlexport.quic.quic_key_generation import dev_quic_keys, dev_initial_keys, key_update
 from tlexport.quic.quic_packet import QuicPacket, ShortQuicPacket, LongQuicPacket, QuicPacketType
+from tlexport.quic.quic_tls_parser import QuicTlsSession
 
 
 class QuicSession:
@@ -49,14 +49,48 @@ class QuicSession:
         self.cipher = None
         self.key_length = None
 
+        self.alpn = None
+
         self.early_traffic_keys = False
+
+        self.tls_session = QuicTlsSession()
 
         self.application_data: list[list[bytes, Type[Frame], bool]] = []
 
         self.handle_packets()
 
+    # reset Quic Session Parameters, except output buffer and Socket Addresses
+    def reset(self):
+        pass
+
     def decrypt(self):
         pass
+
+    def handle_crypto_frame(self, frame: CryptoFrame, isserver):
+        self.tls_session.update_session(frame, isserver)
+        if self.tls_session.server_hello_seen:
+            self.set_tls_decryptors(self.tls_session.client_random, self.tls_session.ciphersuite)
+            self.alpn = self.tls_session.alpn
+
+    def handle_frame(self, frame: Frame, isserver):
+        # CRYPTO, STREAM,  NEW_CONNECTION_ID, CONNECTION_CLOSE
+        match frame:
+            case CryptoFrame():
+                frame = cast(CryptoFrame, frame)
+                self.handle_crypto_frame(frame, isserver)
+
+            case StreamFrame():
+                self.output_buffer.append(frame)
+
+            case NewConnectionIdFrame():
+                # TODO check cid order
+                frame = cast(NewConnectionIdFrame, frame)
+                if isserver:
+                    self.server_cids.append(frame.connection_id)
+                else:
+                    self.client_cids.append(frame.connection_id)
+            case ConnectionCloseFrame():
+                self.reset()
 
     def check_key_epoch(self, key_phase_bit, isserver):
         if isserver:
@@ -90,7 +124,7 @@ class QuicSession:
                 case QuicPacketType.RTT_O:
                     decryptor = self.decryptors["Early"]
 
-            payload = decryptor.decrypt(quic_packet.payload, quic_packet.packet_num, )
+            # payload = decryptor.decrypt(quic_packet.payload, quic_packet.packet_num, )
 
     def handle_packets(self):
         for quic_packet in self.packet_buffer_quic:
