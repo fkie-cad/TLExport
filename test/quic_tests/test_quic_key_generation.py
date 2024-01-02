@@ -1,7 +1,9 @@
 from unittest import TestCase
-from tlexport.quic.quic_key_generation import dev_initial_keys, dev_quic_keys
+from tlexport.quic.quic_key_generation import dev_initial_keys, dev_quic_keys, key_update
 from cryptography.hazmat.primitives.hashes import SHA256
 from tlexport.keylog_reader import Key
+from tlexport.quic.quic_decryptor import QuicDecryptor
+from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 
 
 class TestQuicKeyGen(TestCase):
@@ -41,3 +43,11 @@ class TestQuicKeyGen(TestCase):
         self.assertEqual(quic_keys["server_application_iv"], bytes.fromhex("02f6180e4f4aa456d7e8a602"))
         self.assertEqual(quic_keys["client_application_hp"], bytes.fromhex("8a6a38bc5cc40cb482a254dac68c9d2f"))
         self.assertEqual(quic_keys["server_application_hp"], bytes.fromhex("b7f6f021453e52b58940e4bba72a35d4"))
+
+    def test_quic_key_update(self):
+        decryptor_n = QuicDecryptor(
+                [bytes.fromhex("c6d98ff3441c3fe1b2182094f69caa2ed4b716b65488960a7a984979fb23e1c8"), bytes.fromhex("e0459b3474bdd0e44a41c144"), bytes.fromhex("c6d98ff3441c3fe1b2182094f69caa2ed4b716b65488960a7a984979fb23e1c8"),
+                 bytes.fromhex("e0459b3474bdd0e44a41c144"), bytes.fromhex("9ac312a7f877468ebe69422748ad00a15443f18203a07d6060f688f30f21632b"), bytes.fromhex("9ac312a7f877468ebe69422748ad00a15443f18203a07d6060f688f30f21632b")],ChaCha20Poly1305)
+
+        updated = key_update(decryptor_n, SHA256(), 32, ChaCha20Poly1305)
+        self.assertEqual(updated.keys[-1], bytes.fromhex("1223504755036d556342ee9361d253421a826c9ecdf3c7148684b36b714881f9"))

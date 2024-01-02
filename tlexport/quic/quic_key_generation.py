@@ -6,7 +6,7 @@ from cryptography.hazmat.primitives.hashes import SHA256
 from cryptography.hazmat.primitives.ciphers import Cipher
 from cryptography.hazmat.primitives.ciphers.algorithms import AES
 from cryptography.hazmat.primitives.ciphers.modes import ECB
-from quic_decryptor import QuicDecryptor
+from tlexport.quic.quic_decryptor import QuicDecryptor
 
 
 def dev_quic_keys(key_length, secret_list, hash_fun: hashes.HashAlgorithm):
@@ -114,6 +114,7 @@ def dev_initial_keys(connection_id: bytes):
     }
 
     return initial_keys
+
 
 # TODO test
 def key_update(decryptor_n: QuicDecryptor, hash_fun: hashes.HashAlgorithm, key_length: int, cipher) -> QuicDecryptor:
