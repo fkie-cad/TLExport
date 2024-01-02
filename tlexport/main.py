@@ -11,25 +11,25 @@ from tlexport.dpkt_dsb import Reader
 from tlexport.session import Session
 from tlexport.checksums import calculate_checksum_tcp, calculate_checksum_udp
 from tlexport.log import set_logger
-from tlexport.quic.quic_packet import  QuicHeaderType
+from tlexport.quic.quic_packet import QuicHeaderType
 from tlexport.quic.quic_session import QuicSession
-from tlexport.quic.quic_dissector import QuicDissector
+from tlexport.quic.quic_dissector import get_quic_header_data, finish_short_header
 
 server_ports = [443, 44330]
 keylog = []
 sessions = []
 quic_sessions = []
-quic_diss = QuicDissector()
+
 
 def arg_parser_init():
     parser = argparse.ArgumentParser(description="Adding Decryption Secret Block Support to Zeek")
     parser.add_argument("-p", "--serverports", help="additional ports to test for TLS-Connections", nargs="+",
                         default=[443])
     parser.add_argument("-i", "--infile", help="path of input file",
-                        default="/home/jannis/Documents/Programming/github/TLExport/tlexport/pcaps_und_keylogs/quic_pcaps/only_quic.pcapng")
+                        default="pcaps_und_keylogs/cid_change.pcapng")
     parser.add_argument("-o", "--outfile", help="path of output file", default="out.pcapng")
     parser.add_argument("-s", "--sslkeylog", help="path to sslkeylogfile",
-                        default="/home/jannis/Documents/Programming/github/TLExport/tlexport/pcaps_und_keylogs/quic_pcaps/dtls_cid_change.log")
+                        default="pcaps_und_keylogs/cid_change.log")
     # default False due to checksum offloading producing wrong checksums in Packet Capture
     parser.add_argument("-c", "--checksumTest", help="enable for checking tcp Checksums",
                         action=argparse.BooleanOptionalAction, default=False)
@@ -73,15 +73,16 @@ def handle_packet(packet: Packet, keylog, sessions: list[Session], portmap):
 
 
 def handle_quic_packet(packet, keylog, quic_sessions: list[QuicSession], portmap):
-
-    quic_packets = quic_diss.get_quic_header_data(packet=packet, isserver=False)    # if there is no session for this packet, we assume it is an inital from the client
+    quic_packets = get_quic_header_data(packet=packet,
+                                        isserver=False)  # if there is no session for this packet, we assume it is an inital from the client
 
     for quic_session in quic_sessions:
 
         isserver = quic_session.set_server_client_address(packet, server_ports)
-        quic_packets = quic_diss.get_quic_header_data(packet=packet, isserver=isserver)
+        quic_packets = get_quic_header_data(packet=packet, isserver=isserver)
 
-        if quic_session.matches_session_dgram(ip_src=packet.ip_src, ip_dst=packet.ip_dst, sport=packet.sport, dport=packet.dport):  # check if packet in session, based on port and ip
+        if quic_session.matches_session_dgram(ip_src=packet.ip_src, ip_dst=packet.ip_dst, sport=packet.sport,
+                                              dport=packet.dport):  # check if packet in session, based on port and ip
             for quic_packet in quic_packets:
                 if quic_packet.header_type != QuicHeaderType.SHORT:  # Short header packets haven't been fully dissected at this point, so we first ignore them
                     quic_session.packet_buffer_quic.append(quic_packet)
@@ -106,12 +107,14 @@ def handle_quic_packet(packet, keylog, quic_sessions: list[QuicSession], portmap
                 cid_found = quic_session.match_cid(bytearray(quic_packet.payload))
 
                 if cid_found is not None:
-                    quic_packet = quic_diss.finish_short_header(cid=cid_found[0], data=quic_packet.payload, isserver=cid_found[1])
+                    quic_packet = finish_short_header(cid=cid_found[0], data=quic_packet.payload, isserver=cid_found[1])
                     quic_session.packet_buffer_quic.append(quic_packet)
                     quic_packets.remove(quic_packet)
                     continue
 
-            elif quic_packet.header_type != QuicHeaderType.SHORT and (quic_session.matches_session_quic(quic_packet.dcid) or quic_session.matches_session_quic(quic_packet.scid)):    # check if packet in session, based on CIDs from QUIC
+            elif quic_packet.header_type != QuicHeaderType.SHORT and (
+                    quic_session.matches_session_quic(quic_packet.dcid) or quic_session.matches_session_quic(
+                    quic_packet.scid)):  # check if packet in session, based on CIDs from QUIC
                 quic_session.packet_buffer_quic.append(quic_packet)
                 quic_packets.remove(quic_packet)
                 continue
@@ -119,7 +122,8 @@ def handle_quic_packet(packet, keylog, quic_sessions: list[QuicSession], portmap
     if (packet.dport in server_ports or packet.sport in server_ports) and len(quic_packets) > 0:  # TODO: Change
         for quic_packet in quic_packets:
             if quic_packet.header_type != QuicHeaderType.SHORT:
-                new_session = QuicSession(packet=packet, quic_packet=quic_packets, server_ports=server_ports, keylog=keylog, portmap=portmap)
+                new_session = QuicSession(packet=packet, quic_packet=quic_packets, server_ports=server_ports,
+                                          keylog=keylog, portmap=portmap)
                 new_session.packet_buffer_quic.extend(quic_packets)
                 quic_sessions.append(new_session)
 
