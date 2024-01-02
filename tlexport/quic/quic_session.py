@@ -1,16 +1,16 @@
 import logging
-from tlexport.quic.quic_dissector import QuicDissector
-from typing import Dict
-from tlexport.quic.quic_packet import QuicPacket
+from typing import Type, cast
 
-from tlexport.packet import Packet
-from tlexport.keylog_reader import Key
-from tlexport.quic.quic_key_generation import dev_quic_keys, dev_initial_keys
-from cryptography.hazmat.primitives.hashes import SHA256, SHA384
 import pylsqpack
-from tlexport.key_derivator import dev_tls_13_keys
-from tlexport.quic.quic_decryptor import QuicDecryptor
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM, ChaCha20Poly1305, AESCCM
+from cryptography.hazmat.primitives.hashes import SHA256, SHA384
+
+from tlexport.keylog_reader import Key
+from tlexport.packet import Packet
+from tlexport.quic.quic_decryptor import QuicDecryptor
+from tlexport.quic.quic_frame import Frame
+from tlexport.quic.quic_key_generation import dev_quic_keys, dev_initial_keys
+from tlexport.quic.quic_packet import QuicPacket, ShortQuicPacket, LongQuicPacket, QuicPacketType
 
 
 class QuicSession:
@@ -24,14 +24,16 @@ class QuicSession:
         self.client_cids = []
         self.server_cids = []
 
-        self.packet_buffer = []
-        self.packet_buffer.append(packet)
+        self.server_frame_buffer = []
+        self.client_frame_buffer = []
+
         self.packet_buffer_quic = []
         self.packet_buffer_quic.append(quic_packet)
 
-        self.server_decoder = pylsqpack.Decoder(4096, 16)
-        self.client_decoder = pylsqpack.Decoder(4096, 16)
         secret_list = []
+
+        self.epoch_client = 0
+        self.epoch_server = 0
 
         self.output_buffer = []
 
@@ -46,10 +48,38 @@ class QuicSession:
 
         self.early_traffic_keys = False
 
+        self.application_data: list[list[bytes, Type[Frame], bool]] = []
+
+        self.handle_packets()
+
     def decrypt(self):
         pass
 
-    def set_server_client_address(self, packet, server_ports) -> bool:  # Returns True if packet is from server, else it returns False
+    def decrypt_packet(self, quic_packet: type[QuicPacket]):
+        decryptor: QuicDecryptor = None
+        # decrypt 1-RTT
+        if type(quic_packet) == ShortQuicPacket:
+            quic_packet = cast(ShortQuicPacket, quic_packet)
+            pass
+
+        else:
+            quic_packet = cast(LongQuicPacket, quic_packet)
+            match quic_packet.packet_type:
+                case QuicPacketType.INITIAL:
+                    decryptor = self.decryptors["Initial"]
+                case QuicPacketType.HANDSHAKE:
+                    decryptor = self.decryptors["Handshake"]
+                case QuicPacketType.RTT_O:
+                    decryptor = self.decryptors["Early"]
+
+            payload = decryptor.decrypt(quic_packet.payload, quic_packet.packet_num, )
+
+    def handle_packets(self):
+        for quic_packet in self.packet_buffer_quic:
+            self.decrypt_packet(quic_packet)
+
+    def set_server_client_address(self, packet,
+                                  server_ports) -> bool:  # Returns True if packet is from server, else it returns False
         if packet.sport in server_ports:
             self.server_ip = packet.ip_src
             self.server_port = packet.sport
@@ -167,9 +197,9 @@ class QuicSession:
             return
 
         try:
-            self.decryptors["Application"] = QuicDecryptor(
+            self.decryptors["Application"] = [QuicDecryptor(
                 [keys["server_application_key"], keys["server_application_iv"], keys["client_application_key"],
-                 keys["client_application_iv"]], self.cipher)
+                 keys["client_application_iv"]], self.cipher)]
         except:
             self.can_decrypt = False
             logging.error("Missing Key Material")
@@ -182,4 +212,3 @@ class QuicSession:
             self.early_traffic_keys = True
         except:
             logging.warning("No Early Traffic Secrets")
-
