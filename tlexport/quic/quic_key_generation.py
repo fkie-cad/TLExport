@@ -6,6 +6,7 @@ from cryptography.hazmat.primitives.hashes import SHA256
 from cryptography.hazmat.primitives.ciphers import Cipher
 from cryptography.hazmat.primitives.ciphers.algorithms import AES
 from cryptography.hazmat.primitives.ciphers.modes import ECB
+from quic_decryptor import QuicDecryptor
 
 
 def dev_quic_keys(key_length, secret_list, hash_fun: hashes.HashAlgorithm):
@@ -35,11 +36,13 @@ def dev_quic_keys(key_length, secret_list, hash_fun: hashes.HashAlgorithm):
             client_application_key = HKDFExpand(hash_fun, key_length, key_info).derive(bytes.fromhex(secret.value))
             client_application_iv = HKDFExpand(hash_fun, 12, iv_info).derive(bytes.fromhex(secret.value))
             client_application_hp = HKDFExpand(hash_fun, key_length, hp_info).derive(bytes.fromhex(secret.value))
+            client_application_secret = bytes.fromhex(secret.value)
 
         elif secret.label == "SERVER_TRAFFIC_SECRET_0":
             server_application_key = HKDFExpand(hash_fun, key_length, key_info).derive(bytes.fromhex(secret.value))
             server_application_iv = HKDFExpand(hash_fun, 12, iv_info).derive(bytes.fromhex(secret.value))
             server_application_hp = HKDFExpand(hash_fun, key_length, hp_info).derive(bytes.fromhex(secret.value))
+            server_application_secret = bytes.fromhex(secret.value)
 
         elif secret.label == "CLIENT_EARLY_TRAFFIC_SECRET":
             client_early_traffic_key = HKDFExpand(hash_fun, key_length, key_info).derive(bytes.fromhex(secret.value))
@@ -65,6 +68,8 @@ def dev_quic_keys(key_length, secret_list, hash_fun: hashes.HashAlgorithm):
         "server_application_iv": server_application_iv,
         "client_application_hp": client_application_hp,
         "server_application_hp": server_application_hp,
+        "client_application_sec": client_application_secret,
+        "server_application_sec": server_application_secret,
 
         "client_early_key": client_early_traffic_key,
         "client_early_iv": client_early_traffic_iv,
@@ -110,14 +115,37 @@ def dev_initial_keys(connection_id: bytes):
 
     return initial_keys
 
+# TODO test
+def key_update(decryptor_n: QuicDecryptor, hash_fun: hashes.HashAlgorithm, key_length: int, cipher) -> QuicDecryptor:
+    key_info = make_info(b"quic key", key_length)
+    iv_info = make_info(b"quic iv", 12)
+
+    server_n = decryptor_n.keys[4]
+    client_n = decryptor_n.keys[5]
+
+    server_n_1 = HKDFExpand(hash_fun, hash_fun.digest_size, make_info(b"quic ku", hash_fun.digest_size)).derive(
+        server_n)
+    client_n_1 = HKDFExpand(hash_fun, hash_fun.digest_size, make_info(b"quic ku", hash_fun.digest_size)).derive(
+        client_n)
+
+    client_application_key = HKDFExpand(hash_fun, key_length, key_info).derive(client_n_1)
+    client_application_iv = HKDFExpand(hash_fun, 12, iv_info).derive(client_n_1)
+    client_application_secret = client_n_1
+
+    server_application_key = HKDFExpand(hash_fun, key_length, key_info).derive(server_n_1)
+    server_application_iv = HKDFExpand(hash_fun, 12, iv_info).derive(server_n_1)
+    server_application_secret = server_n_1
+
+    return QuicDecryptor([server_application_key, server_application_iv, client_application_key, client_application_iv,
+                          server_application_secret, client_application_secret], cipher)
+
 
 def make_info(label, key_length):
     lable_len = len(label) + 6
     return key_length.to_bytes(2, 'big') + lable_len.to_bytes(1, 'big') + b"tls13 " + label + b"\x00"
 
 
-def make_hp_mask(hp_key: bytes, sample: bytes) -> bytes:    # TODO: Add ChaCha20Poly1305 mask generation
+def make_hp_mask(hp_key: bytes, sample: bytes) -> bytes:  # TODO: Add ChaCha20Poly1305 mask generation
     encryptor = Cipher(AES(hp_key), ECB()).encryptor()
     mask = encryptor.update(sample) + encryptor.finalize()
     return mask
-

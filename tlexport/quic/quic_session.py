@@ -9,7 +9,7 @@ from tlexport.keylog_reader import Key
 from tlexport.packet import Packet
 from tlexport.quic.quic_decryptor import QuicDecryptor
 from tlexport.quic.quic_frame import Frame
-from tlexport.quic.quic_key_generation import dev_quic_keys, dev_initial_keys
+from tlexport.quic.quic_key_generation import dev_quic_keys, dev_initial_keys, key_update
 from tlexport.quic.quic_packet import QuicPacket, ShortQuicPacket, LongQuicPacket, QuicPacketType
 
 
@@ -35,6 +35,9 @@ class QuicSession:
         self.epoch_client = 0
         self.epoch_server = 0
 
+        self.last_key_phase_server = 0
+        self.last_key_phase_client = 0
+
         self.output_buffer = []
 
         self.decryptors = {}
@@ -55,10 +58,25 @@ class QuicSession:
     def decrypt(self):
         pass
 
+    def check_key_epoch(self, key_phase_bit, isserver):
+        if isserver:
+            if self.last_key_phase_server != key_phase_bit:
+                self.epoch_server += 1
+                self.last_key_phase_server = key_phase_bit
+        else:
+            if self.last_key_phase_client != key_phase_bit:
+                self.epoch_client += 1
+                self.last_key_phase_client = key_phase_bit
+
+        if self.epoch_client == len(self.decryptors["Application"]) or self.epoch_server == len(
+                self.decryptors["Application"]):
+            new_decryptor = key_update(self.decryptors["Application"][-1], self.hash_fun, self.key_length, self.cipher)
+            self.decryptors["Application"].append(new_decryptor)
+
     def decrypt_packet(self, quic_packet: type[QuicPacket]):
         decryptor: QuicDecryptor = None
         # decrypt 1-RTT
-        if type(quic_packet) == ShortQuicPacket:
+        if isinstance(quic_packet, ShortQuicPacket):
             quic_packet = cast(ShortQuicPacket, quic_packet)
             pass
 
@@ -199,7 +217,8 @@ class QuicSession:
         try:
             self.decryptors["Application"] = [QuicDecryptor(
                 [keys["server_application_key"], keys["server_application_iv"], keys["client_application_key"],
-                 keys["client_application_iv"]], self.cipher)]
+                 keys["client_application_iv"], keys["server_application_sec"], keys["client_application_sec"]],
+                self.cipher)]
         except:
             self.can_decrypt = False
             logging.error("Missing Key Material")

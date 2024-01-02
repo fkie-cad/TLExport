@@ -1,8 +1,6 @@
-from cryptography.hazmat.primitives.ciphers.aead import AESCCM, AESGCM, ChaCha20Poly1305
-
-
 class QuicDecryptor:
     def __init__(self, keys, bulk_cipher):
+        self.keys = keys
         self.server_key = keys[0]
         self.server_iv = keys[1]
         self.client_key = keys[2]
