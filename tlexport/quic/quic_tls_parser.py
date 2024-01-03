@@ -1,4 +1,5 @@
 from tlexport.quic.quic_frame import CryptoFrame
+from tlexport.quic.quic_packet import QuicPacketType
 
 
 # the Quic Session shall create only one Quic TLS Session at a time,
@@ -11,39 +12,62 @@ class QuicTlsSession:
         self.tls_vers = None
         self.server_hello_seen = False
 
-        self.server_record_buffer = b""
-        self.client_record_buffer = b""
+        self.server_offset = {QuicPacketType.INITIAL: 0, QuicPacketType.RTT_O: 0, QuicPacketType.RTT_1: 0, QuicPacketType.HANDSHAKE: 0}
+        self.client_offset = {QuicPacketType.INITIAL: 0, QuicPacketType.RTT_O: 0, QuicPacketType.RTT_1: 0, QuicPacketType.HANDSHAKE: 0}
 
-    def update_session(self, frame: CryptoFrame, isserver):
-        if isserver:
-            self.server_record_buffer += frame.crypto
+        self.server_frame_buffer: dict[QuicPacketType, list[CryptoFrame]] = {QuicPacketType.INITIAL: [], QuicPacketType.RTT_O: [], QuicPacketType.RTT_1: [], QuicPacketType.HANDSHAKE: []}
+        self.client_frame_buffer: dict[QuicPacketType, list[CryptoFrame]] = {QuicPacketType.INITIAL: [], QuicPacketType.RTT_O: [], QuicPacketType.RTT_1: [], QuicPacketType.HANDSHAKE: []}
+
+        self.server_buffer = {QuicPacketType.INITIAL: b"", QuicPacketType.RTT_O: b"", QuicPacketType.RTT_1: b"", QuicPacketType.HANDSHAKE: b""}
+        self.client_buffer = {QuicPacketType.INITIAL: b"", QuicPacketType.RTT_O: b"", QuicPacketType.RTT_1: b"", QuicPacketType.HANDSHAKE: b""}
+
+    def update_session(self, frame: CryptoFrame):
+        if frame.src_packet.isserver:
+            self.server_frame_buffer[frame.src_packet.packet_type].append(frame)
+            self.server_frame_buffer[frame.src_packet.packet_type].sort(key=lambda x: x.offset)
+
+            for crypto_frame in self.server_frame_buffer[frame.src_packet.packet_type]:
+                if crypto_frame.offset == self.server_offset[frame.src_packet.packet_type]:
+                    self.server_buffer[frame.src_packet.packet_type] += crypto_frame.crypto
+                    self.server_offset[frame.src_packet.packet_type] += crypto_frame.crypto_length
+                    self.server_frame_buffer[frame.src_packet.packet_type].remove(crypto_frame)
+
             self.handle_buffer(True)
         else:
-            self.client_record_buffer += frame.crypto
+            self.client_frame_buffer[frame.src_packet.packet_type].append(frame)
+            self.client_frame_buffer[frame.src_packet.packet_type].sort(key=lambda x: x.offset)
+
+            for crypto_frame in self.client_frame_buffer[frame.src_packet.packet_type]:
+                if crypto_frame.offset == self.client_offset[frame.src_packet.packet_type]:
+                    self.client_buffer[frame.src_packet.packet_type] += crypto_frame.crypto
+                    self.client_offset[frame.src_packet.packet_type] += crypto_frame.crypto_length
+                    self.client_frame_buffer[frame.src_packet.packet_type].remove(crypto_frame)
+
             self.handle_buffer(False)
 
     def handle_buffer(self, isserver):
-        if isserver:
-            buffer = self.server_record_buffer
-        else:
-            buffer = self.client_record_buffer
-
-        while True:
-            if len(buffer) <= 4:
-                return
-
-            record_len = int.from_bytes(buffer[1:4], 'big', signed=False)
-
-            if len(buffer) < 4 + record_len:
-                return
-            self.handle_record(buffer[0], buffer[:4 + record_len])
-
-            buffer = buffer[4 + record_len:]
-
+        for quic_packet_type in [QuicPacketType.INITIAL, QuicPacketType.RTT_O, QuicPacketType.RTT_1, QuicPacketType.HANDSHAKE]:
             if isserver:
-                self.server_record_buffer = buffer
+                buffer = self.server_buffer[quic_packet_type]
             else:
-                self.client_record_buffer = buffer
+                buffer = self.client_buffer[quic_packet_type]
+
+            while True:
+                if len(buffer) <= 4:
+                    break
+
+                record_len = int.from_bytes(buffer[1:4], 'big', signed=False)
+
+                if len(buffer) < 4 + record_len:
+                    break
+                self.handle_record(buffer[0], buffer[:4 + record_len])
+
+                buffer = buffer[4 + record_len:]
+
+                if isserver:
+                    self.server_buffer[quic_packet_type] = buffer
+                else:
+                    self.client_buffer[quic_packet_type] = buffer
 
     def handle_client_hello(self, record):
         if len(record) < 38:

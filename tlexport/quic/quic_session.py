@@ -67,7 +67,7 @@ class QuicSession:
         pass
 
     def handle_crypto_frame(self, frame: CryptoFrame, isserver):
-        self.tls_session.update_session(frame, isserver)
+        self.tls_session.update_session(frame)
         if self.tls_session.server_hello_seen:
             self.set_tls_decryptors(self.tls_session.client_random, self.tls_session.ciphersuite)
             self.alpn = self.tls_session.alpn
