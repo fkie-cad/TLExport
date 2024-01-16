@@ -7,19 +7,20 @@ from cryptography.hazmat.primitives.hashes import SHA256, SHA384
 from tlexport.keylog_reader import Key
 from tlexport.packet import Packet
 from tlexport.quic.quic_decryptor import QuicDecryptor
-from tlexport.quic.quic_frame import CryptoFrame, StreamFrame,  NewConnectionIdFrame, ConnectionCloseFrame, Frame
+from tlexport.quic.quic_frame import CryptoFrame, StreamFrame, NewConnectionIdFrame, ConnectionCloseFrame, Frame, \
+    parse_frames
 from tlexport.quic.quic_key_generation import dev_quic_keys, dev_initial_keys, key_update
 from tlexport.quic.quic_packet import QuicPacket, ShortQuicPacket, LongQuicPacket, QuicPacketType
 from tlexport.quic.quic_tls_parser import QuicTlsSession
 
 
 class QuicSession:
-    def __init__(self, packet: Packet, quic_packet: QuicPacket, server_ports, keylog: list[Key], portmap):
+    def __init__(self, packet: Packet, server_ports, keylog: list[Key], portmap):
         self.keylog = keylog
 
-        self.ipv6: bool = packet.ipv6_packet
-
         self.set_server_client_address(packet, server_ports)
+
+        self.ipv6: bool = packet.ipv6_packet
 
         self.client_cids = []
         self.server_cids = []
@@ -28,9 +29,6 @@ class QuicSession:
         self.client_frame_buffer = []
 
         self.packet_buffer_quic = []
-        self.packet_buffer_quic.append(quic_packet)
-
-        secret_list = []
 
         self.epoch_client = 0
         self.epoch_server = 0
@@ -57,22 +55,85 @@ class QuicSession:
 
         self.application_data: list[list[bytes, Type[Frame], bool]] = []
 
+        self.packet_number_server = None
+        self.packet_number_client = None
+        self.buffer_spaces_server = None
+        self.buffer_spaces_client = None
+
+        self.set_packet_number_spaces()
+
+        self.handle_packet(packet)
         self.handle_packets()
 
     # reset Quic Session Parameters, except output buffer and Socket Addresses
-    def reset(self):
-        pass
+    def reset(self, packet: Packet):
+        self.ipv6: bool = packet.ipv6_packet
+
+        self.client_cids = []
+        self.server_cids = []
+
+        self.server_frame_buffer = []
+        self.client_frame_buffer = []
+
+        self.packet_buffer_quic = []
+
+        self.epoch_client = 0
+        self.epoch_server = 0
+
+        self.last_key_phase_server = 0
+        self.last_key_phase_client = 0
+
+        self.output_buffer = []
+
+        self.decryptors = {}
+        self.keys: dict[str, bytes] = {}
+
+        self.can_decrypt = True
+
+        self.hash_fun = None
+        self.cipher = None
+        self.key_length = None
+
+        self.alpn = None
+
+        self.early_traffic_keys = False
+
+        self.tls_session = QuicTlsSession()
+
+        self.application_data: list[list[bytes, Type[Frame], bool]] = []
+
+        self.packet_number_server = None
+        self.packet_number_client = None
+        self.buffer_spaces_server = None
+        self.buffer_spaces_client = None
+
+        self.set_packet_number_spaces()
 
     def decrypt(self):
         pass
 
+    def set_packet_number_spaces(self):
+        # RTT_1 and RTT_0 are in same packet_number space 12.3
+        self.packet_number_server = {(QuicPacketType.INITIAL,): 0, (QuicPacketType.HANDSHAKE,): 0,
+                                     (QuicPacketType.RTT_1, QuicPacketType.RTT_O): 0}
+        self.packet_number_client = {(QuicPacketType.INITIAL,): 0, (QuicPacketType.HANDSHAKE,): 0,
+                                     (QuicPacketType.RTT_1, QuicPacketType.RTT_O): 0}
+
+        self.buffer_spaces_server = {(QuicPacketType.INITIAL,): [], (QuicPacketType.HANDSHAKE,): [],
+                                     (QuicPacketType.RTT_1, QuicPacketType.RTT_O): []}
+        self.buffer_spaces_client = {(QuicPacketType.INITIAL,): [], (QuicPacketType.HANDSHAKE,): [],
+                                     (QuicPacketType.RTT_1, QuicPacketType.RTT_O): []}
+
     def handle_crypto_frame(self, frame: CryptoFrame, isserver):
         self.tls_session.update_session(frame)
-        if self.tls_session.server_hello_seen:
-            self.set_tls_decryptors(self.tls_session.client_random, self.tls_session.ciphersuite)
+        if self.tls_session.new_data:
+            if self.tls_session.client_random is not None and self.tls_session.ciphersuite is not None:
+                self.set_tls_decryptors(self.tls_session.client_random, self.tls_session.ciphersuite)
             self.alpn = self.tls_session.alpn
+            self.tls_session.new_data = False
 
-    def handle_frame(self, frame: Frame, isserver):
+    def handle_frame(self, frame: Frame):
+        isserver = frame.src_packet.isserver
         # CRYPTO, STREAM,  NEW_CONNECTION_ID, CONNECTION_CLOSE
         match frame:
             case CryptoFrame():
@@ -90,7 +151,7 @@ class QuicSession:
                 else:
                     self.client_cids.append(frame.connection_id)
             case ConnectionCloseFrame():
-                self.reset()
+                pass
 
     def check_key_epoch(self, key_phase_bit, isserver):
         if isserver:
@@ -108,11 +169,16 @@ class QuicSession:
             self.decryptors["Application"].append(new_decryptor)
 
     def decrypt_packet(self, quic_packet: type[QuicPacket]):
-        decryptor: QuicDecryptor = None
+        decryptor: QuicDecryptor
         # decrypt 1-RTT
         if isinstance(quic_packet, ShortQuicPacket):
             quic_packet = cast(ShortQuicPacket, quic_packet)
-            pass
+            self.check_key_epoch(quic_packet.key_phase, quic_packet.isserver)
+
+            if quic_packet.isserver:
+                decryptor = self.decryptors["Application"][self.epoch_server]
+            else:
+                decryptor = self.decryptors["Application"][self.epoch_client]
 
         else:
             quic_packet = cast(LongQuicPacket, quic_packet)
@@ -124,7 +190,17 @@ class QuicSession:
                 case QuicPacketType.RTT_O:
                     decryptor = self.decryptors["Early"]
 
-            # payload = decryptor.decrypt(quic_packet.payload, quic_packet.packet_num, )
+        # payload = decryptor.decrypt(quic_packet.payload, quic_packet.packet_num, quic_packet, quic_packet.isserver)
+        payload = b""
+        frames = parse_frames(payload, quic_packet)
+
+        for frame in frames:
+            self.handle_frame(frame)
+
+    def handle_packet(self, packet: Packet):
+        # TODO extract QUIC-Packets
+
+        self.handle_packets()
 
     def handle_packets(self):
         for quic_packet in self.packet_buffer_quic:
@@ -153,17 +229,6 @@ class QuicSession:
             self.client_mac_addr = packet.ethernet_src
 
             return False
-
-    def match_cid(self, data: bytes) -> tuple | None:   # Returns (cid, 0) if cid is from client, (cid, 1) if cid is from server
-        for cid in self.client_cids + self.server_cids:
-            print(bytearray(data[1: len(cid) + 1]))
-            if bytearray(data[1: len(cid) + 1]) == cid:    # Offset of 1 cause the dcid of a short header packet starts there
-                if cid in self.client_cids:
-                    return cid, 0
-                elif cid in self.server_cids:
-                    return cid, 1
-                else:
-                    return None  # CID is unknown/not found
 
     def matches_session_dgram(self, ip_src, ip_dst, sport, dport):
 

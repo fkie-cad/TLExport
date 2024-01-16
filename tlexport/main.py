@@ -1,19 +1,17 @@
-import os
-import sys
-
-import dpkt
 import argparse
 import logging
 
-from tlexport.packet import Packet
+import dpkt
+
 import tlexport.keylog_reader as keylog_reader
-from tlexport.dpkt_dsb import Reader
-from tlexport.session import Session
 from tlexport.checksums import calculate_checksum_tcp, calculate_checksum_udp
+from tlexport.dpkt_dsb import Reader
 from tlexport.log import set_logger
+from tlexport.packet import Packet
+from tlexport.quic.quic_dissector import get_header_type
 from tlexport.quic.quic_packet import QuicHeaderType
 from tlexport.quic.quic_session import QuicSession
-from tlexport.quic.quic_dissector import get_quic_header_data, finish_short_header
+from tlexport.session import Session
 
 server_ports = [443, 44330]
 keylog = []
@@ -72,60 +70,33 @@ def handle_packet(packet: Packet, keylog, sessions: list[Session], portmap):
         sessions.append(Session(packet, server_ports, keylog, portmap))
 
 
-def handle_quic_packet(packet, keylog, quic_sessions: list[QuicSession], portmap):
-    quic_packets = get_quic_header_data(packet=packet,
-                                        isserver=False)  # if there is no session for this packet, we assume it is an inital from the client
+def handle_quic_packet(packet: Packet, keylog, quic_sessions: list[QuicSession], portmap):
+    packet_payload = packet.tls_data
+    header_type = get_header_type(packet_payload)
 
-    for quic_session in quic_sessions:
+    if header_type == QuicHeaderType.LONG:
+        dcid_len = packet_payload[5]
+        dcid = packet_payload[6: 6 + dcid_len]
 
-        isserver = quic_session.set_server_client_address(packet, server_ports)
-        quic_packets = get_quic_header_data(packet=packet, isserver=isserver)
+    for session in quic_sessions:
+        # first try matching connection IDs
+        if QuicHeaderType.LONG:
+            if dcid in session.client_cids or dcid in session.server_cids:
+                session.handle_packet(packet)
+                return
+        else:
+            # match by checking all known cid lengths for session
+            for cid in session.client_cids + session.server_cids:
+                if cid == packet_payload[1:1 + len(cid)]:
+                    session.handle_packet(packet)
+                    return
 
-        if quic_session.matches_session_dgram(ip_src=packet.ip_src, ip_dst=packet.ip_dst, sport=packet.sport,
-                                              dport=packet.dport):  # check if packet in session, based on port and ip
-            for quic_packet in quic_packets:
-                if quic_packet.header_type != QuicHeaderType.SHORT:  # Short header packets haven't been fully dissected at this point, so we first ignore them
-                    quic_session.packet_buffer_quic.append(quic_packet)
-
-                    if isserver:
-                        if bytearray(quic_packet.scid) not in quic_session.server_cids:
-                            quic_session.server_cids.append(bytearray(quic_packet.scid))
-                        if bytearray(quic_packet.dcid) not in quic_session.client_cids:
-                            quic_session.client_cids.append(bytearray(quic_packet.dcid))
-
-                    else:
-                        if bytearray(quic_packet.dcid) not in quic_session.server_cids:
-                            quic_session.server_cids.append(bytearray(quic_packet.dcid))
-                        if bytearray(quic_packet.scid) not in quic_session.client_cids:
-                            quic_session.client_cids.append(bytearray(quic_packet.scid))
-                    quic_packets.remove(quic_packet)
+        # check matching ip address and port for zero length cids
+        if session.matches_session_dgram(packet.ip_src, packet.ip_dst, packet.sport, packet.dport):
+            session.handle_packet(packet)
             return
 
-        for quic_packet in quic_packets:
-            if quic_packet.header_type == QuicHeaderType.SHORT:  # Short header packtes haven't been fully dissected at this point, so we have to further analyse their contents here
-
-                cid_found = quic_session.match_cid(bytearray(quic_packet.payload))
-
-                if cid_found is not None:
-                    quic_packet = finish_short_header(cid=cid_found[0], data=quic_packet.payload, isserver=cid_found[1])
-                    quic_session.packet_buffer_quic.append(quic_packet)
-                    quic_packets.remove(quic_packet)
-                    continue
-
-            elif quic_packet.header_type != QuicHeaderType.SHORT and (
-                    quic_session.matches_session_quic(quic_packet.dcid) or quic_session.matches_session_quic(
-                    quic_packet.scid)):  # check if packet in session, based on CIDs from QUIC
-                quic_session.packet_buffer_quic.append(quic_packet)
-                quic_packets.remove(quic_packet)
-                continue
-
-    if (packet.dport in server_ports or packet.sport in server_ports) and len(quic_packets) > 0:  # TODO: Change
-        for quic_packet in quic_packets:
-            if quic_packet.header_type != QuicHeaderType.SHORT:
-                new_session = QuicSession(packet=packet, quic_packet=quic_packets, server_ports=server_ports,
-                                          keylog=keylog, portmap=portmap)
-                new_session.packet_buffer_quic.extend(quic_packets)
-                quic_sessions.append(new_session)
+    sessions.append(QuicSession(packet, server_ports, keylog, portmap))
 
 
 def run():

@@ -10,7 +10,7 @@ class QuicTlsSession:
         self.client_random = None
         self.alpn = None
         self.tls_vers = None
-        self.server_hello_seen = False
+        self.new_data = False
 
         self.server_offset = {QuicPacketType.INITIAL: 0, QuicPacketType.RTT_O: 0, QuicPacketType.RTT_1: 0, QuicPacketType.HANDSHAKE: 0}
         self.client_offset = {QuicPacketType.INITIAL: 0, QuicPacketType.RTT_O: 0, QuicPacketType.RTT_1: 0, QuicPacketType.HANDSHAKE: 0}
@@ -76,6 +76,7 @@ class QuicTlsSession:
         record = record[4:]
         self.tls_vers = record[:2]
         self.client_random = record[2:34]
+        self.new_data = True
 
     def handle_server_hello(self, record):
         if len(record) < 44:
@@ -87,13 +88,14 @@ class QuicTlsSession:
         record = record[3:]
 
         self.get_extensions(record)
-        self.server_hello_seen = True
+        self.new_data = True
 
     def handle_encrypted_extensions(self, record):
         if len(record) < 6:
             return
 
         self.get_extensions(record[4:])
+        self.new_data = True
 
     def get_extensions(self, record):
         if len(record[2:]) != int.from_bytes(record[:2], 'big', signed=False):

@@ -1,13 +1,6 @@
 import struct
 
-import dpkt
-from enum import Enum
 from tlexport.packet import Packet
-from cryptography.hazmat.primitives.ciphers import Cipher
-from cryptography.hazmat.primitives.ciphers.algorithms import AES
-from cryptography.hazmat.primitives.ciphers.aead import AESCCM, AESGCM, ChaCha20Poly1305
-from cryptography.hazmat.primitives.ciphers.modes import ECB
-from cryptography.hazmat.primitives.hashes import SHA256
 from tlexport.quic import quic_decode, quic_key_generation, quic_packet
 from tlexport.quic.quic_packet import LongQuicPacket, ShortQuicPacket, QuicPacketType, QuicHeaderType
 
@@ -249,3 +242,10 @@ def get_quic_header_data(packet: Packet, isserver):
 
     except:
         return packet_buf
+
+
+def get_header_type(payload: bytes):
+    if payload[0] >> 7 & 1 == 1:
+        return QuicHeaderType.LONG
+    else:
+        return QuicHeaderType.SHORT
