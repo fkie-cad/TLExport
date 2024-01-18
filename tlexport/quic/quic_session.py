@@ -12,6 +12,14 @@ from tlexport.quic.quic_frame import CryptoFrame, StreamFrame, NewConnectionIdFr
 from tlexport.quic.quic_key_generation import dev_quic_keys, dev_initial_keys, key_update
 from tlexport.quic.quic_packet import QuicPacket, ShortQuicPacket, LongQuicPacket, QuicPacketType
 from tlexport.quic.quic_tls_parser import QuicTlsSession
+from tlexport.quic.quic_dissector import get_quic_header_data
+
+PACKET_TYPE_MAP = {
+    QuicPacketType.INITIAL: (QuicPacketType.INITIAL,),
+    QuicPacketType.HANDSHAKE: (QuicPacketType.HANDSHAKE,),
+    QuicPacketType.RTT_O: (QuicPacketType.RTT_1, QuicPacketType.RTT_O),
+    QuicPacketType.RTT_1: (QuicPacketType.RTT_1, QuicPacketType.RTT_O)
+}
 
 
 class QuicSession:
@@ -22,8 +30,8 @@ class QuicSession:
 
         self.ipv6: bool = packet.ipv6_packet
 
-        self.client_cids = []
-        self.server_cids = []
+        self.client_cids = set()
+        self.server_cids = set()
 
         self.server_frame_buffer = []
         self.client_frame_buffer = []
@@ -35,8 +43,6 @@ class QuicSession:
 
         self.last_key_phase_server = 0
         self.last_key_phase_client = 0
-
-        self.output_buffer = []
 
         self.decryptors = {}
         self.keys: dict[str, bytes] = {}
@@ -62,13 +68,8 @@ class QuicSession:
 
         self.set_packet_number_spaces()
 
-        self.handle_packet(packet)
-        self.handle_packets()
-
     # reset Quic Session Parameters, except output buffer and Socket Addresses
-    def reset(self, packet: Packet):
-        self.ipv6: bool = packet.ipv6_packet
-
+    def reset(self):
         self.client_cids = []
         self.server_cids = []
 
@@ -82,8 +83,6 @@ class QuicSession:
 
         self.last_key_phase_server = 0
         self.last_key_phase_client = 0
-
-        self.output_buffer = []
 
         self.decryptors = {}
         self.keys: dict[str, bytes] = {}
@@ -102,10 +101,10 @@ class QuicSession:
 
         self.application_data: list[list[bytes, Type[Frame], bool]] = []
 
-        self.packet_number_server = None
-        self.packet_number_client = None
-        self.buffer_spaces_server = None
-        self.buffer_spaces_client = None
+        self.packet_number_server: dict[tuple[QuicPacketType, QuicPacketType], int] = {}
+        self.packet_number_client: dict[tuple[QuicPacketType, QuicPacketType], int] = {}
+        self.buffer_spaces_server = {}
+        self.buffer_spaces_client = {}
 
         self.set_packet_number_spaces()
 
@@ -124,7 +123,7 @@ class QuicSession:
         self.buffer_spaces_client = {(QuicPacketType.INITIAL,): [], (QuicPacketType.HANDSHAKE,): [],
                                      (QuicPacketType.RTT_1, QuicPacketType.RTT_O): []}
 
-    def handle_crypto_frame(self, frame: CryptoFrame, isserver):
+    def handle_crypto_frame(self, frame: CryptoFrame):
         self.tls_session.update_session(frame)
         if self.tls_session.new_data:
             if self.tls_session.client_random is not None and self.tls_session.ciphersuite is not None:
@@ -138,18 +137,17 @@ class QuicSession:
         match frame:
             case CryptoFrame():
                 frame = cast(CryptoFrame, frame)
-                self.handle_crypto_frame(frame, isserver)
+                self.handle_crypto_frame(frame)
 
             case StreamFrame():
                 self.output_buffer.append(frame)
 
             case NewConnectionIdFrame():
-                # TODO check cid order
                 frame = cast(NewConnectionIdFrame, frame)
                 if isserver:
-                    self.server_cids.append(frame.connection_id)
+                    self.server_cids.add(frame.connection_id)
                 else:
-                    self.client_cids.append(frame.connection_id)
+                    self.client_cids.add(frame.connection_id)
             case ConnectionCloseFrame():
                 pass
 
@@ -170,7 +168,6 @@ class QuicSession:
 
     def decrypt_packet(self, quic_packet: type[QuicPacket]):
         decryptor: QuicDecryptor
-        # decrypt 1-RTT
         if isinstance(quic_packet, ShortQuicPacket):
             quic_packet = cast(ShortQuicPacket, quic_packet)
             self.check_key_epoch(quic_packet.key_phase, quic_packet.isserver)
@@ -189,25 +186,45 @@ class QuicSession:
                     decryptor = self.decryptors["Handshake"]
                 case QuicPacketType.RTT_O:
                     decryptor = self.decryptors["Early"]
+        try:
+            packet_number = self.get_full_packet_number(quic_packet)
 
-        # payload = decryptor.decrypt(quic_packet.payload, quic_packet.packet_num, quic_packet, quic_packet.isserver)
-        payload = b""
-        frames = parse_frames(payload, quic_packet)
+            # payload = decryptor.decrypt(quic_packet.payload, packet_number, quic_packet, quic_packet.isserver)
+            payload = b""
 
-        for frame in frames:
-            self.handle_frame(frame)
+            frames = parse_frames(payload, quic_packet)
 
-    def handle_packet(self, packet: Packet):
+            for frame in frames:
+                self.handle_frame(frame)
+
+        except:
+            logging.warning(f"Could not decrypt Quic Packet: {quic_packet.dcid}")
+
+    def handle_packet(self, packet: Packet, dcid: bytes):
+        if "Initial" not in self.decryptors.keys():
+            self.set_initial_decryptor(dcid)
+
         # TODO extract QUIC-Packets
+        quic_packets = get_quic_header_data(packet, False)
 
         self.handle_packets()
 
     def handle_packets(self):
         for quic_packet in self.packet_buffer_quic:
-            self.decrypt_packet(quic_packet)
+            if quic_packet.packet_type not in [QuicPacketType.RETRY, QuicPacketType.VERSION_NEG]:
+                self.decrypt_packet(quic_packet)
+            if quic_packet.packet_type == QuicPacketType.RETRY:
+                self.reset()
+            if quic_packet.packet_type == QuicPacketType.INITIAL:
+                if quic_packet.isserver:
+                    self.server_cids.add(quic_packet.scid)
+                    self.client_cids.add(quic_packet.dcid)
+                else:
+                    self.client_cids.add(quic_packet.scid)
+                    self.server_cids.add(quic_packet.dcid)
 
-    def set_server_client_address(self, packet,
-                                  server_ports) -> bool:  # Returns True if packet is from server, else it returns False
+    def set_server_client_address(self, packet, server_ports) -> bool:
+        # Returns True if packet is from server, else it returns False
         if packet.sport in server_ports:
             self.server_ip = packet.ip_src
             self.server_port = packet.sport
@@ -261,6 +278,36 @@ class QuicSession:
 
         self.keys += keys
         self.decryptors["Initial"] = dec
+
+    def get_full_packet_number(self, quic_packet: ShortQuicPacket | LongQuicPacket) -> int:
+        if quic_packet.isserver:
+            largest_pkn = self.packet_number_server[PACKET_TYPE_MAP[quic_packet.packet_type]]
+        else:
+            largest_pkn = self.packet_number_client[PACKET_TYPE_MAP[quic_packet.packet_type]]
+
+        truncated_pkn = quic_packet.packet_num
+        truncated_pkn_len = quic_packet.packet_num_len
+
+        pkn_len_bits = truncated_pkn_len * 8
+
+        expected_pkn = largest_pkn + 1
+        pkn_window = 1 << pkn_len_bits
+        pkn_hwindow = pkn_window / 2
+        pkn_mask = pkn_window - 1
+
+        candidate_pkn = (expected_pkn & ~pkn_mask) | truncated_pkn
+        if candidate_pkn <= expected_pkn - pkn_hwindow and candidate_pkn < (1 << 62) - pkn_window:
+            return candidate_pkn + pkn_window
+        if candidate_pkn > expected_pkn + pkn_hwindow and candidate_pkn >= pkn_window:
+            return candidate_pkn - pkn_window
+
+        if candidate_pkn > largest_pkn:
+            if quic_packet.isserver:
+                self.packet_number_server[PACKET_TYPE_MAP[quic_packet.packet_type]] = candidate_pkn
+            else:
+                self.packet_number_client[PACKET_TYPE_MAP[quic_packet.packet_type]] = candidate_pkn
+
+        return candidate_pkn
 
     def set_tls_decryptors(self, client_random, ciphersuite: bytes):
 

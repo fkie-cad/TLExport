@@ -82,21 +82,25 @@ def handle_quic_packet(packet: Packet, keylog, quic_sessions: list[QuicSession],
         # first try matching connection IDs
         if QuicHeaderType.LONG:
             if dcid in session.client_cids or dcid in session.server_cids:
-                session.handle_packet(packet)
+                session.handle_packet(packet, dcid)
                 return
         else:
             # match by checking all known cid lengths for session
             for cid in session.client_cids + session.server_cids:
                 if cid == packet_payload[1:1 + len(cid)]:
-                    session.handle_packet(packet)
+                    session.handle_packet(packet, dcid)
                     return
 
         # check matching ip address and port for zero length cids
         if session.matches_session_dgram(packet.ip_src, packet.ip_dst, packet.sport, packet.dport):
-            session.handle_packet(packet)
+            session.handle_packet(packet, dcid)
             return
 
-    sessions.append(QuicSession(packet, server_ports, keylog, portmap))
+    if header_type != QuicHeaderType.SHORT:
+        new_session = QuicSession(packet, server_ports, keylog, portmap)
+        sessions.append(new_session)
+        new_session.handle_packet(packet, dcid)
+
 
 
 def run():
