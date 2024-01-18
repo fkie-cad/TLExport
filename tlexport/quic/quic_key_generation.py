@@ -4,7 +4,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDFExpand, HKDF
 from cryptography.hazmat.primitives.hashes import SHA256
 from cryptography.hazmat.primitives.ciphers import Cipher
-from cryptography.hazmat.primitives.ciphers.algorithms import AES
+from cryptography.hazmat.primitives.ciphers.algorithms import AES, ChaCha20
 from cryptography.hazmat.primitives.ciphers.modes import ECB
 from tlexport.quic.quic_decryptor import QuicDecryptor
 
@@ -145,7 +145,13 @@ def make_info(label, key_length):
     return key_length.to_bytes(2, 'big') + lable_len.to_bytes(1, 'big') + b"tls13 " + label + b"\x00"
 
 
-def make_hp_mask(hp_key: bytes, sample: bytes) -> bytes:  # TODO: Add ChaCha20Poly1305 mask generation
+def make_hp_mask(hp_key: bytes, sample: bytes) -> bytes:
     encryptor = Cipher(AES(hp_key), ECB()).encryptor()
     mask = encryptor.update(sample) + encryptor.finalize()
+    return mask
+
+
+def make_chacha_hp_mask(hp_key: bytes, sample: bytes) -> bytes:
+    encryptor = Cipher(ChaCha20(hp_key, sample), mode=None).encryptor()
+    mask = encryptor.update(b"\x00" * 5) + encryptor.finalize()
     return mask
