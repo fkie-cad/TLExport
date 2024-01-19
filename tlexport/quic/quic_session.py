@@ -213,8 +213,18 @@ class QuicSession:
         for quic_packet in self.packet_buffer_quic:
             if quic_packet.packet_type not in [QuicPacketType.RETRY, QuicPacketType.VERSION_NEG]:
                 self.decrypt_packet(quic_packet)
+
             if quic_packet.packet_type == QuicPacketType.RETRY:
-                self.reset()
+                self.tls_session = QuicTlsSession()
+                self.decryptors = {}
+                self.keys: dict[str, bytes] = {}
+
+                self.hash_fun = None
+                self.cipher = None
+                self.key_length = None
+
+                self.alpn = None
+
             if quic_packet.packet_type == QuicPacketType.INITIAL:
                 if quic_packet.isserver:
                     self.server_cids.add(quic_packet.scid)
@@ -276,7 +286,7 @@ class QuicSession:
 
         dec = QuicDecryptor(dec_keys, AESGCM)
 
-        self.keys += keys
+        self.keys.update(keys)
         self.decryptors["Initial"] = dec
 
     def get_full_packet_number(self, quic_packet: ShortQuicPacket | LongQuicPacket) -> int:
@@ -350,7 +360,7 @@ class QuicSession:
 
         keys = dev_quic_keys(self.key_length, session_keys, self.hash_fun())
 
-        self.keys += keys
+        self.keys.update(keys)
         try:
             self.decryptors["Handshake"] = QuicDecryptor(
                 [keys["server_handshake_key"], keys["server_handshake_iv"], keys["client_handshake_key"],
