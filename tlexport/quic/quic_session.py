@@ -24,6 +24,7 @@ PACKET_TYPE_MAP = {
 
 class QuicSession:
     def __init__(self, packet: Packet, server_ports, keylog: list[Key], portmap):
+        self.greasy_bit = False
         self.keylog = keylog
 
         self.set_server_client_address(packet, server_ports)
@@ -95,6 +96,8 @@ class QuicSession:
 
         self.alpn = None
 
+        self.greasy_bit = False
+
         self.early_traffic_keys = False
 
         self.tls_session = QuicTlsSession()
@@ -129,6 +132,7 @@ class QuicSession:
             if self.tls_session.client_random is not None and self.tls_session.ciphersuite is not None:
                 self.set_tls_decryptors(self.tls_session.client_random, self.tls_session.ciphersuite)
             self.alpn = self.tls_session.alpn
+            self.greasy_bit = self.tls_session.greasy_bit
             self.tls_session.new_data = False
 
     def handle_frame(self, frame: Frame):

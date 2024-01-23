@@ -11,6 +11,7 @@ class QuicTlsSession:
         self.alpn = None
         self.tls_vers = None
         self.new_data = False
+        self.greasy_bit = False
 
         self.server_offset = {QuicPacketType.INITIAL: 0, QuicPacketType.RTT_O: 0, QuicPacketType.RTT_1: 0, QuicPacketType.HANDSHAKE: 0}
         self.client_offset = {QuicPacketType.INITIAL: 0, QuicPacketType.RTT_O: 0, QuicPacketType.RTT_1: 0, QuicPacketType.HANDSHAKE: 0}
@@ -72,10 +73,25 @@ class QuicTlsSession:
     def handle_client_hello(self, record):
         if len(record) < 38:
             return
-
+        client_hello_len = int.from_bytes(record[1:4], "big", signed=False)
         record = record[4:]
         self.tls_vers = record[:2]
         self.client_random = record[2:34]
+        session_id_length = record[34]
+        self.session_id = record[35:35 + session_id_length]
+        index = 35 + session_id_length
+        cipher_suite_length = int.from_bytes(record[index: index + 2], "big", signed=False)
+        index += 2
+        _ciphersuites = record[index: index + cipher_suite_length]
+        index += cipher_suite_length
+
+        compression_methods_length = record[index]
+        _compression_methods = record[index + 1: index + 1 + compression_methods_length]
+        index += 1 + compression_methods_length
+        record = record[index:]
+
+        self.get_extensions(record)
+
         self.new_data = True
 
     def handle_server_hello(self, record):
@@ -134,6 +150,31 @@ class QuicTlsSession:
                     if len(e_body) != 3 + alpn_length:
                         continue
                     self.alpn = e_body[3:3 + alpn_length]
+                # quic transport parameters
+                case 57:
+                    self.get_quic_transport_parameters(e_body)
+
+    def get_quic_transport_parameters(self, extension_body):
+        parameters = []
+        while True:
+            if len(extension_body) < 4:
+                break
+
+            parameter_type = extension_body[:2]
+            parameter_length = int.from_bytes(extension_body[2:4], "big", signed=False)
+
+            if len(extension_body) < 4 + parameter_length:
+                break
+
+            parameter_body = extension_body[4:4 + parameter_length]
+
+            parameters.append((parameter_type, parameter_length, parameter_body))
+
+            extension_body = extension_body[4 + parameter_length]
+
+        for (p_type, p_length, p_body) in parameters:
+            if p_type == 0x2ab2:
+                self.greasy_bit = True
 
     # Only Handshake Messages are carried in Crypto frames, alerts are Handled by QUIC
     def handle_record(self, record_type, record):
