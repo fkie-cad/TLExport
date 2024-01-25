@@ -1,6 +1,6 @@
 from tlexport.quic.quic_frame import CryptoFrame
 from tlexport.quic.quic_packet import QuicPacketType
-
+from tlexport.quic.quic_decode import get_variable_length_int_length, decode_variable_length_int
 
 # the Quic Session shall create only one Quic TLS Session at a time,
 # when a new Quic Session is registered the Quic TLS Session must be discarded
@@ -74,6 +74,10 @@ class QuicTlsSession:
         if len(record) < 38:
             return
         client_hello_len = int.from_bytes(record[1:4], "big", signed=False)
+
+        if len(record) < 4 + client_hello_len:
+            return
+
         record = record[4:]
         self.tls_vers = record[:2]
         self.client_random = record[2:34]
@@ -152,25 +156,30 @@ class QuicTlsSession:
                     self.alpn = e_body[3:3 + alpn_length]
                 # quic transport parameters
                 case 57:
-                    self.get_quic_transport_parameters(e_body)
+                    try:
+                        self.get_quic_transport_parameters(e_body)
+                    except:
+                        pass
 
     def get_quic_transport_parameters(self, extension_body):
         parameters = []
         while True:
-            if len(extension_body) < 4:
+            if len(extension_body) < 1:
                 break
 
-            parameter_type = extension_body[:2]
-            parameter_length = int.from_bytes(extension_body[2:4], "big", signed=False)
+            parameter_type_length = get_variable_length_int_length(extension_body[0:1])
 
-            if len(extension_body) < 4 + parameter_length:
-                break
+            parameter_type = decode_variable_length_int(extension_body[0:parameter_type_length])
+            index = parameter_type_length
+            parameter_length_field_length = get_variable_length_int_length(extension_body[index: index + 1])
+            parameter_length = decode_variable_length_int(extension_body[index: index + parameter_length_field_length])
+            index += parameter_length_field_length
 
-            parameter_body = extension_body[4:4 + parameter_length]
+            parameter_body = extension_body[index:index + parameter_length]
 
             parameters.append((parameter_type, parameter_length, parameter_body))
 
-            extension_body = extension_body[4 + parameter_length]
+            extension_body = extension_body[index + parameter_length:]
 
         for (p_type, p_length, p_body) in parameters:
             if p_type == 0x2ab2:

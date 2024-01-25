@@ -6,6 +6,8 @@ from tlexport.quic.quic_packet import QuicPacket, QuicHeaderType, QuicPacketType
 
 class TestQuicTlsParser(TestCase):
     def setUp(self):
+        self.grease_session = QuicTlsSession()
+
         self.quic_tls_session = QuicTlsSession()
         self.quic_tls_session_2 = QuicTlsSession()
 
@@ -21,6 +23,14 @@ class TestQuicTlsParser(TestCase):
         self.rtt_0_packet_client = QuicPacket(QuicHeaderType.SHORT, QuicPacketType.RTT_O, False)
         self.rtt_0_packet_server = QuicPacket(QuicHeaderType.SHORT, QuicPacketType.RTT_O, True)
 
+    def test_grease_bit(self):
+        client_hello = bytes.fromhex("06004164010001600303b5aa1aa50bf1a0b538fc0490553b7e40f10859e82ed7f6c82cb485bdec8c5cb20000021301010001350039003f0f1185b6d35dd134fec53f53bb1cefceb7272d050480600000070480600000040480f00000090240640104800075300e01076ab20011080000000100000001000500050100000000000a000a0008001d001700180019000b00020100000d00220020040108090804040308070501080a0805050308080601080b08060603020102030010000500030268330016000000170000002300000033006b0069001d0020f501aa55e894953c84ff651d24b184f868b5fce4c402a13a640b80a0a04690650017004104b410eff4fb20bb78ef7014834162247a76267eaa13ecc5cba8c223a055ebece690bb48812b3f8e6e586c70d9614ad19afb666d376a94de75c0e223e230629a10002b0003020304ff010001000000000e000c0000096c6f63616c686f7374002d0003020100001c00024001")
+
+        frame = CryptoFrame(client_hello, self.initial_packet_client)
+        self.grease_session.update_session(frame)
+
+        self.assertEqual(self.grease_session.greasy_bit, True)
+
     def test_client_hello(self):
         client_hello = bytes.fromhex(
             "06004224010002200303baa39ecf56d1d50e2626737a5254c8e0ce1b97dd576ff9030637626c6bd5f2fc0000081301130213031304010001efffa5003f0f11f48b4afc4a98ec1e372ee23d5eb7b79638050480600000070480600000040480f00000090240640104800075300e01076ab200110800000001000000010039003f0f11f48b4afc4a98ec1e372ee23d5eb7b79638050480600000070480600000040480f00000090240640104800075300e01076ab20011080000000100000001fe0d00d40000010001e30020be6ea58a46f137aba63894dac652151e1444fd5be3424b5fa4234703d97d446500aa5048a9e3367548056e58647b1267ef63b77b9326d52973ac299474220bf04a8d084f564d06c988ca2723489f913071b5fe1a492fefb8127bbc4734104a1ca91fb56cfdff7502bdfe79945978751a65b570bfc88a48f59ad98293653b60a567a32493d51d9e8071d279fa30b81e16cda0f2b5b8e1740588d917a5eb2f05ea1672de54fdce629b643b57db28430d36eb4aaabe390bb3de5f22cdbb50e601ed349fef596da25d7166122895002d0003020001003300260024001d002086256c8e19e0e7add482405897504693eeb3c856629d5c116becabe1163b1808002b0003020304000d002400220603050304030203080708080806080b0805080a0804080906010501040103010201001600000000000e000c0000096c6f63616c686f7374001000050003026833000a000a0008001d00170018001900230000")
@@ -28,7 +38,7 @@ class TestQuicTlsParser(TestCase):
         self.quic_tls_session.update_session(frame)
         self.assertEqual(self.quic_tls_session.client_random,
                          b"\xba\xa3\x9e\xcf\x56\xd1\xd5\x0e\x26\x26\x73\x7a\x52\x54\xc8\xe0\xce\x1b\x97\xdd\x57\x6f\xf9\x03\x06\x37\x62\x6c\x6b\xd5\xf2\xfc")
-        self.assertEqual(self.quic_tls_session.server_hello_seen, False)
+        self.assertEqual(self.quic_tls_session.new_data, True)
 
     def test_server_hello(self):
         server_hello = b"\x06\x00\x40\x5a\x02\x00\x00\x56\x03\x03\x79\xf0\xd4\x71\x26\x23" \
@@ -40,7 +50,7 @@ class TestQuicTlsParser(TestCase):
 
         frame = CryptoFrame(server_hello, self.initial_packet_server)
         self.quic_tls_session.update_session(frame)
-        self.assertEqual(self.quic_tls_session.server_hello_seen, True)
+        self.assertEqual(self.quic_tls_session.new_data, True)
         self.assertEqual(self.quic_tls_session.alpn, None)
         self.assertEqual(self.quic_tls_session.ciphersuite, b"\x13\x01")
         self.assertEqual(self.quic_tls_session.tls_vers, b"\x03\x04")
