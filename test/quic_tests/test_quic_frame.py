@@ -89,3 +89,11 @@ class TestQuicFrameGeneration(TestCase):
         self.assertEqual(bytes.fromhex("e01f26872f1ff3d8"), new_connection_id_frame.connection_id)
         self.assertEqual(bytes.fromhex("f60b2d543c097238b39865dd3e7b5880"),
                          new_connection_id_frame.stateless_reset_token)
+
+    def test_datagram_frame(self):
+        parsed_frames = frames.parse_frames(bytes.fromhex(
+            "310454657374"),
+            self.quic_packet)
+        datagram_frames: frames.DatagramFrame = parsed_frames[0]
+        self.assertEqual(datagram_frames.length, 6)
+        self.assertEqual(datagram_frames.payload, b"Test")
