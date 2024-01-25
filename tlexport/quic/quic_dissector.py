@@ -3,6 +3,13 @@ import struct
 from tlexport.packet import Packet
 from tlexport.quic import quic_decode, quic_key_generation, quic_packet
 from tlexport.quic.quic_packet import LongQuicPacket, ShortQuicPacket, QuicPacketType, QuicHeaderType
+from enum import Enum
+
+
+class QuicVersion(Enum):
+    UNKNOWN = 0
+    V1 = 1
+    V2 = 2
 
 
 def byte_xor(byte1, byte2):
