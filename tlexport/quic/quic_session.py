@@ -12,7 +12,7 @@ from tlexport.quic.quic_frame import CryptoFrame, StreamFrame, NewConnectionIdFr
 from tlexport.quic.quic_key_generation import dev_quic_keys, dev_initial_keys, key_update
 from tlexport.quic.quic_packet import QuicPacket, ShortQuicPacket, LongQuicPacket, QuicPacketType
 from tlexport.quic.quic_tls_parser import QuicTlsSession
-from tlexport.quic.quic_dissector import get_quic_header_data
+from tlexport.quic.quic_dissector import get_quic_header_data, QuicVersion
 
 PACKET_TYPE_MAP = {
     QuicPacketType.INITIAL: (QuicPacketType.INITIAL,),
@@ -24,8 +24,11 @@ PACKET_TYPE_MAP = {
 
 class QuicSession:
     def __init__(self, packet: Packet, server_ports, keylog: list[Key], portmap):
+        self.output_buffer = []
         self.greasy_bit = False
         self.keylog = keylog
+
+        self.quic_version = QuicVersion.UNKNOWN
 
         self.set_server_client_address(packet, server_ports)
 
@@ -81,6 +84,8 @@ class QuicSession:
 
         self.epoch_client = 0
         self.epoch_server = 0
+
+        self.quic_version = QuicVersion.UNKNOWN
 
         self.last_key_phase_server = 0
         self.last_key_phase_client = 0
@@ -167,7 +172,7 @@ class QuicSession:
 
         if self.epoch_client == len(self.decryptors["Application"]) or self.epoch_server == len(
                 self.decryptors["Application"]):
-            new_decryptor = key_update(self.decryptors["Application"][-1], self.hash_fun, self.key_length, self.cipher)
+            new_decryptor = key_update(self.decryptors["Application"][-1], self.hash_fun, self.key_length, self.cipher, self.quic_version)
             self.decryptors["Application"].append(new_decryptor)
 
     def decrypt_packet(self, quic_packet: type[QuicPacket]):
@@ -273,13 +278,17 @@ class QuicSession:
         return False
 
     def matches_session_quic(self, cid):
-        if cid in self.client_cids + self.server_cids:
+        if cid in self.client_cids | self.server_cids:
             return True
         else:
             return False
 
     def set_initial_decryptor(self, dcid: bytes):
-        keys: dict[str, bytes] = dev_initial_keys(dcid)
+        keys: dict[str, bytes] = dev_initial_keys(dcid, self.quic_version)
+
+        if keys is None:
+            self.can_decrypt = False
+            return
 
         dec_keys = [
             keys["server_initial_key"],
@@ -362,7 +371,7 @@ class QuicSession:
             if key.client_random == client_random:
                 session_keys.append(key)
 
-        keys = dev_quic_keys(self.key_length, session_keys, self.hash_fun())
+        keys = dev_quic_keys(self.key_length, session_keys, self.hash_fun(), self.quic_version)
 
         self.keys.update(keys)
         try:

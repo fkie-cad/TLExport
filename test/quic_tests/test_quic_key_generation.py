@@ -4,6 +4,7 @@ from cryptography.hazmat.primitives.hashes import SHA256
 from tlexport.keylog_reader import Key
 from tlexport.quic.quic_decryptor import QuicDecryptor
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
+from tlexport.quic.quic_dissector import QuicVersion
 
 
 class TestQuicKeyGen(TestCase):
@@ -19,7 +20,7 @@ class TestQuicKeyGen(TestCase):
         ]
 
     def test_dev_initial_keys(self):
-        initial_keys = dev_initial_keys(self.destination_connection_id)
+        initial_keys = dev_initial_keys(self.destination_connection_id, QuicVersion.V1)
         self.assertEqual(initial_keys["client_initial_key"], bytes.fromhex("1f369613dd76d5467730efcbe3b1a22d"))
         self.assertEqual(initial_keys["client_initial_iv"], bytes.fromhex("fa044b2f42a3fd3b46fb255c"))
         self.assertEqual(initial_keys["client_initial_hp"], bytes.fromhex("9f50449e04a0e810283a1e9933adedd2"))
@@ -28,7 +29,7 @@ class TestQuicKeyGen(TestCase):
         self.assertEqual(initial_keys["server_initial_hp"], bytes.fromhex("c206b8d9b9f0f37644430b490eeaa314"))
 
     def test_quic_tls_keys(self):
-        quic_keys = dev_quic_keys(16,  self.keylog, SHA256())
+        quic_keys = dev_quic_keys(16, self.keylog, SHA256(), QuicVersion.V1)
         # Handshake Keys
         self.assertEqual(quic_keys["client_handshake_key"], bytes.fromhex("30a7e816f6a1e1b3434cf39cf4b415e7"))
         self.assertEqual(quic_keys["server_handshake_key"], bytes.fromhex("17abbf0a788f96c6986964660414e7ec"))
@@ -47,8 +48,48 @@ class TestQuicKeyGen(TestCase):
 
     def test_quic_key_update(self):
         decryptor_n = QuicDecryptor(
-                [bytes.fromhex("c6d98ff3441c3fe1b2182094f69caa2ed4b716b65488960a7a984979fb23e1c8"), bytes.fromhex("e0459b3474bdd0e44a41c144"), bytes.fromhex("c6d98ff3441c3fe1b2182094f69caa2ed4b716b65488960a7a984979fb23e1c8"),
-                 bytes.fromhex("e0459b3474bdd0e44a41c144"), bytes.fromhex("9ac312a7f877468ebe69422748ad00a15443f18203a07d6060f688f30f21632b"), bytes.fromhex("9ac312a7f877468ebe69422748ad00a15443f18203a07d6060f688f30f21632b")],ChaCha20Poly1305)
+            [bytes.fromhex("c6d98ff3441c3fe1b2182094f69caa2ed4b716b65488960a7a984979fb23e1c8"),
+             bytes.fromhex("e0459b3474bdd0e44a41c144"),
+             bytes.fromhex("c6d98ff3441c3fe1b2182094f69caa2ed4b716b65488960a7a984979fb23e1c8"),
+             bytes.fromhex("e0459b3474bdd0e44a41c144"),
+             bytes.fromhex("9ac312a7f877468ebe69422748ad00a15443f18203a07d6060f688f30f21632b"),
+             bytes.fromhex("9ac312a7f877468ebe69422748ad00a15443f18203a07d6060f688f30f21632b")], ChaCha20Poly1305)
 
-        updated = key_update(decryptor_n, SHA256(), 32, ChaCha20Poly1305)
-        self.assertEqual(updated.keys[-1], bytes.fromhex("1223504755036d556342ee9361d253421a826c9ecdf3c7148684b36b714881f9"))
+        updated = key_update(decryptor_n, SHA256(), 32, ChaCha20Poly1305, QuicVersion.V1)
+        self.assertEqual(updated.keys[-1],
+                         bytes.fromhex("1223504755036d556342ee9361d253421a826c9ecdf3c7148684b36b714881f9"))
+
+
+class TestQuicKeyGenV2(TestCase):
+    def setUp(self) -> None:
+        self.destination_connection_id = bytes.fromhex("8394c8f03e515708")
+
+        self.keylog = [
+            Key("CLIENT_HANDSHAKE_TRAFFIC_SECRET 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f b8902ab5f9fe52fdec3aea54e9293e4b8eabf955fcd88536bf44b8b584f14982"),
+            Key("SERVER_HANDSHAKE_TRAFFIC_SECRET 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f 88ad8d3b0986a71965a28d108b0f40ffffe629284a6028c80ddc5dc083b3f5d1"),
+            Key("CLIENT_TRAFFIC_SECRET_0 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f a877a82fd5f89ba622eb03dc5868fd00a31cc2eb8646b362a75bc14893a8ef07"),
+            Key("SERVER_TRAFFIC_SECRET_0 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f a1bfa69e7051fd609946fd9431a51992617c4ddb9c1269c9c0b70cc91b297751"),
+            Key("CLIENT_EARLY_TRAFFIC_SECRET 8bff2e9772b22443167499eb0cb80ecac9709c649e8a94190b4820ad36ea299b 191c930430d813e11540996f2ed70b637f1722104d025530dedbd7f39acb1855")
+        ]
+
+    def test_dev_initial_keys(self):
+        initial_keys = dev_initial_keys(self.destination_connection_id, QuicVersion.V2)
+        self.assertEqual(initial_keys["client_initial_key"], bytes.fromhex("8b1a0bc121284290a29e0971b5cd045d"))
+        self.assertEqual(initial_keys["client_initial_iv"], bytes.fromhex("91f73e2351d8fa91660e909f"))
+        self.assertEqual(initial_keys["client_initial_hp"], bytes.fromhex("45b95e15235d6f45a6b19cbcb0294ba9"))
+        self.assertEqual(initial_keys["server_initial_key"], bytes.fromhex("82db637861d55e1d011f19ea71d5d2a7"))
+        self.assertEqual(initial_keys["server_initial_iv"], bytes.fromhex("dd13c276499c0249d3310652"))
+        self.assertEqual(initial_keys["server_initial_hp"], bytes.fromhex("edf6d05c83121201b436e16877593c3a"))
+
+    def test_quic_key_update(self):
+        decryptor_n = QuicDecryptor(
+            [bytes.fromhex("3bfcddd72bcf02541d7fa0dd1f5f9eeea817e09a6963a0e6c7df0f9a1bab90f2"),
+             bytes.fromhex("e0459b3474bdd0e44a41c144"),
+             bytes.fromhex("c6d98ff3441c3fe1b2182094f69caa2ed4b716b65488960a7a984979fb23e1c8"),
+             bytes.fromhex("e0459b3474bdd0e44a41c144"),
+             bytes.fromhex("9ac312a7f877468ebe69422748ad00a15443f18203a07d6060f688f30f21632b"),
+             bytes.fromhex("9ac312a7f877468ebe69422748ad00a15443f18203a07d6060f688f30f21632b")], ChaCha20Poly1305)
+
+        updated = key_update(decryptor_n, SHA256(), 32, ChaCha20Poly1305, QuicVersion.V2)
+        self.assertEqual(updated.keys[-1],
+                         bytes.fromhex("1223504755036d556342ee9361d253421a826c9ecdf3c7148684b36b714881f9"))

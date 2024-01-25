@@ -7,12 +7,18 @@ from cryptography.hazmat.primitives.ciphers import Cipher
 from cryptography.hazmat.primitives.ciphers.algorithms import AES, ChaCha20
 from cryptography.hazmat.primitives.ciphers.modes import ECB
 from tlexport.quic.quic_decryptor import QuicDecryptor
+from tlexport.quic.quic_dissector import QuicVersion
 
 
-def dev_quic_keys(key_length, secret_list, hash_fun: hashes.HashAlgorithm):
-    key_info = make_info(b"quic key", key_length)
-    iv_info = make_info(b"quic iv", 12)
-    hp_info = make_info(b"quic hp", key_length)
+def dev_quic_keys(key_length, secret_list, hash_fun: hashes.HashAlgorithm, quic_version: QuicVersion):
+    if QuicVersion.V1 == quic_version:
+        key_info = make_info(b"quic key", key_length)
+        iv_info = make_info(b"quic iv", 12)
+        hp_info = make_info(b"quic hp", key_length)
+    else:
+        key_info = make_info(b"quicv2 key", key_length)
+        iv_info = make_info(b"quicv2 iv", 12)
+        hp_info = make_info(b"quicv2 hp", key_length)
 
     client_early_traffic_key = None
     client_early_traffic_iv = None
@@ -89,43 +95,65 @@ def dev_quic_keys(key_length, secret_list, hash_fun: hashes.HashAlgorithm):
     return keys
 
 
-def dev_initial_keys(connection_id: bytes):
+def dev_initial_keys(connection_id: bytes, quic_version: QuicVersion):
     key_length = 16
     hp_key_length = 16
     hash_fun = SHA256()
-    initial_salt = bytes.fromhex("38762cf7f55934b34d179ae6a4c80cadccbb7f0a")
+
+    if quic_version == QuicVersion.V1:
+        initial_salt = bytes.fromhex("38762cf7f55934b34d179ae6a4c80cadccbb7f0a")
+    elif quic_version == QuicVersion.V2:
+        initial_salt = bytes.fromhex("0dede3def700a6db819381be6e269dcbf9bd2ed9")
+    else:
+        return None
 
     initial_secret = HKDF(hash_fun, salt=initial_salt, length=32, info=None)._extract(connection_id)
 
     client_initial = HKDFExpand(hash_fun, 32, info=make_info(b"client in", 32)).derive(initial_secret)
     server_initial = HKDFExpand(hash_fun, 32, info=make_info(b"server in", 32)).derive(initial_secret)
+
+    if quic_version == QuicVersion.V1:
+        key_label = b"quic key"
+        iv_label = b"quic iv"
+        hp_label = b"quic hp"
+    else:
+        key_label = b"quicv2 key"
+        iv_label = b"quicv2 iv"
+        hp_label = b"quicv2 hp"
+
     initial_keys = {
-        "client_initial_key": HKDFExpand(hash_fun, key_length, make_info(b"quic key", key_length)).derive(
+        "client_initial_key": HKDFExpand(hash_fun, key_length, make_info(key_label, key_length)).derive(
             client_initial),
-        "client_initial_iv": HKDFExpand(hash_fun, 12, make_info(b"quic iv", 12)).derive(client_initial),
-        "client_initial_hp": HKDFExpand(hash_fun, key_length, make_info(b"quic hp", hp_key_length)).derive(
+        "client_initial_iv": HKDFExpand(hash_fun, 12, make_info(iv_label, 12)).derive(client_initial),
+        "client_initial_hp": HKDFExpand(hash_fun, key_length, make_info(hp_label, hp_key_length)).derive(
             client_initial),
-        "server_initial_key": HKDFExpand(hash_fun, key_length, make_info(b"quic key", key_length)).derive(
+        "server_initial_key": HKDFExpand(hash_fun, key_length, make_info(key_label, key_length)).derive(
             server_initial),
-        "server_initial_iv": HKDFExpand(hash_fun, 12, make_info(b"quic iv", 12)).derive(
+        "server_initial_iv": HKDFExpand(hash_fun, 12, make_info(iv_label, 12)).derive(
             server_initial),
-        "server_initial_hp": HKDFExpand(hash_fun, key_length, make_info(b"quic hp", hp_key_length)).derive(
+        "server_initial_hp": HKDFExpand(hash_fun, key_length, make_info(hp_label, hp_key_length)).derive(
             server_initial),
     }
 
     return initial_keys
 
 
-def key_update(decryptor_n: QuicDecryptor, hash_fun: hashes.HashAlgorithm, key_length: int, cipher) -> QuicDecryptor:
-    key_info = make_info(b"quic key", key_length)
-    iv_info = make_info(b"quic iv", 12)
+def key_update(decryptor_n: QuicDecryptor, hash_fun: hashes.HashAlgorithm, key_length: int, cipher, quic_version: QuicVersion) -> QuicDecryptor:
+    if quic_version.V1:
+        key_info = make_info(b"quic key", key_length)
+        iv_info = make_info(b"quic iv", 12)
+        ku_info = make_info(b"quic ku", hash_fun.digest_size)
+    else:
+        key_info = make_info(b"quicv2 key", key_length)
+        iv_info = make_info(b"quicv2 iv", 12)
+        ku_info = make_info(b"quicv2 ku", hash_fun.digest_size)
 
     server_n = decryptor_n.keys[4]
     client_n = decryptor_n.keys[5]
 
-    server_n_1 = HKDFExpand(hash_fun, hash_fun.digest_size, make_info(b"quic ku", hash_fun.digest_size)).derive(
+    server_n_1 = HKDFExpand(hash_fun, hash_fun.digest_size, ku_info).derive(
         server_n)
-    client_n_1 = HKDFExpand(hash_fun, hash_fun.digest_size, make_info(b"quic ku", hash_fun.digest_size)).derive(
+    client_n_1 = HKDFExpand(hash_fun, hash_fun.digest_size, ku_info).derive(
         client_n)
 
     client_application_key = HKDFExpand(hash_fun, key_length, key_info).derive(client_n_1)
