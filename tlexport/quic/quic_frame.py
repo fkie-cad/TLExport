@@ -361,6 +361,24 @@ class ConnectionCloseFrame(Frame):
         self.reason_phrase = payload[index: self.length]
 
 
+class DatagramFrame(Frame):
+    def __init__(self, payload, src_packet):
+        super().__init__(src_packet)
+        self.frame_type = payload[0]
+
+        self.len_bit = (payload[0] & 1) == 1
+
+        if self.len_bit:
+            var_int_length = get_variable_length_int_length(payload[1:2])
+            payload_length = decode_variable_length_int(payload[1:1 + var_int_length])
+            self.payload = payload[1 + var_int_length: 1 + var_int_length + payload_length]
+
+            self.length = 1 + var_int_length + payload_length
+        else:
+            self.length = len(payload)
+            self.payload = payload[1:]
+
+
 class HandshakeDoneFrame(Frame):
     frame_type = 0x1e
     length = 1
@@ -390,5 +408,6 @@ frame_type = {
     (0x1a,): PathChallengeFrame,
     (0x1b,): PathResponseFrame,
     (0x1c, 0x1d): ConnectionCloseFrame,
-    (0x1e,): HandshakeDoneFrame
+    (0x1e,): HandshakeDoneFrame,
+    (0x30, 0x31): DatagramFrame
 }
