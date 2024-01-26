@@ -24,10 +24,10 @@ def arg_parser_init():
     parser.add_argument("-p", "--serverports", help="additional ports to test for TLS-Connections", nargs="+",
                         default=[443])
     parser.add_argument("-i", "--infile", help="path of input file",
-                        default="pcaps_und_keylogs/cid_change.pcapng")
+                        default="pcaps_und_keylogs/quic_pcaps/all_ciphersuites.pcapng")
     parser.add_argument("-o", "--outfile", help="path of output file", default="out.pcapng")
     parser.add_argument("-s", "--sslkeylog", help="path to sslkeylogfile",
-                        default="pcaps_und_keylogs/cid_change.log")
+                        default="pcaps_und_keylogs/quic_pcaps/all_ciphersuites.log")
     # default False due to checksum offloading producing wrong checksums in Packet Capture
     parser.add_argument("-c", "--checksumTest", help="enable for checking tcp Checksums",
                         action=argparse.BooleanOptionalAction, default=False)
@@ -44,6 +44,7 @@ def arg_parser_init():
 
     parser.add_argument("-f", "--filter",
                         help="filter log messages by file, add files you want to filter", nargs="+")
+    parser.add_argument("-g", "--greasy", help="ignore dtls, due to changes in the QUIC fixed bit, RFC 9287", action=argparse.BooleanOptionalAction, default=False)
 
     return parser.parse_args()
 
@@ -164,9 +165,10 @@ def run():
                 continue
 
             # using fixed bit for differentiating between QUIC and D-TLS (Second bit of first Byte is always 1 in QUIC)
-            if ((int(packet.tls_data[0]) & 0x40) >> 6) == 1:
+            if ((int(packet.tls_data[0]) & 0x40) >> 6) == 1 or args.greasy:
                 # QUIC Packet
-                handle_quic_packet(packet, keylog, quic_sessions, portmap)
+                # handle_quic_packet(packet, keylog, quic_sessions, portmap)
+                pass
 
             else:
                 # D-TLS Packet
