@@ -1,7 +1,9 @@
 import struct
 
 from tlexport.packet import Packet
-from tlexport.quic import quic_decode, quic_key_generation, quic_packet
+from tlexport.quic.quic_decode import decode_variable_length_int, get_variable_length_int_length
+from tlexport.quic.quic_key_generation import dev_quic_keys, make_hp_mask, dev_initial_keys
+from tlexport.quic.quic_packet import QuicPacketType, QuicHeaderType
 from tlexport.quic.quic_packet import LongQuicPacket, ShortQuicPacket, QuicPacketType, QuicHeaderType
 from enum import Enum
 
@@ -28,14 +30,14 @@ def byte_and(byte1, byte2):
 
 def remove_header_protection(header_type, sample, first_packet_byte, hp_key, datagram_data,
                              pn_offset) -> tuple:
-    mask = quic_key_generation.make_hp_mask(hp_key, sample)
+    mask = make_hp_mask(hp_key, sample)
 
-    if header_type == quic_packet.QuicHeaderType.LONG:
+    if header_type == QuicHeaderType.LONG:
         first_packet_byte = byte_xor(bytes([first_packet_byte]), byte_and(bytes([mask[0]]), b'\x0f'))
     else:
         first_packet_byte = byte_xor(bytes([first_packet_byte]), byte_and(bytes([mask[0]]), b'\x1f'))
 
-    pn_len = quic_decode.decode_variable_length_int(
+    pn_len = decode_variable_length_int(
         byte_and(bytes([int.from_bytes(first_packet_byte, "big")]), b"\x03")) + 1
 
     packet_number_field = byte_xor(datagram_data[pn_offset:pn_offset + pn_len], mask[1: pn_len + 1])
@@ -51,7 +53,7 @@ def finish_short_header(cid: bytes, data: bytes, isserver):
     sample_offset = pn_offset + 4
     sample = data[sample_offset:sample_offset + 16]
 
-    initial_keys = quic_key_generation.dev_initial_keys(cid)
+    initial_keys = dev_initial_keys(cid)
 
     if isserver:
         hp_key = initial_keys["server_initial_hp"]
@@ -103,14 +105,14 @@ def get_quic_header_data(packet: Packet, isserver):
                     fmt_string = "B4sB"  # First Byte, Version, DCID_Len
                     header_parts = struct.unpack_from(fmt_string, datagram_data)
                     version = int.from_bytes(header_parts[1], "big")
-                    dcid_len = quic_decode.decode_variable_length_int(header_parts[2].to_bytes(1, "big"))
+                    dcid_len = decode_variable_length_int(header_parts[2].to_bytes(1, "big"))
                     fmt_string = fmt_string + str(dcid_len) + "s"
                     header_parts = struct.unpack_from(fmt_string, datagram_data)
                     dcid = header_parts[3]
                     fmt_string = fmt_string + "s"
 
                     header_parts = struct.unpack_from(fmt_string, datagram_data)
-                    scid_len = quic_decode.decode_variable_length_int((header_parts[4]))
+                    scid_len = decode_variable_length_int((header_parts[4]))
                     fmt_string = fmt_string + str(scid_len) + "s"
                     header_parts = struct.unpack_from(fmt_string, datagram_data)
                     scid = header_parts[5]
@@ -126,26 +128,26 @@ def get_quic_header_data(packet: Packet, isserver):
                         case 0x00:  # Initial packet
 
                             header_parts = struct.unpack_from(fmt_string + "s", datagram_data)
-                            token_len_len = quic_decode.get_variable_length_int_length(header_parts[-1])
+                            token_len_len = get_variable_length_int_length(header_parts[-1])
                             fmt_string = fmt_string + str(token_len_len) + "s"
                             header_parts = struct.unpack_from(fmt_string, datagram_data)
-                            token_len = quic_decode.decode_variable_length_int(header_parts[-1])
+                            token_len = decode_variable_length_int(header_parts[-1])
                             fmt_string = fmt_string + str(token_len) + "s"
                             header_parts = struct.unpack_from(fmt_string, datagram_data)
                             token = header_parts[-1]
 
-                            packet_len_len = quic_decode.get_variable_length_int_length(
+                            packet_len_len = get_variable_length_int_length(
                                 struct.unpack_from(fmt_string + "s", datagram_data)[-1])
                             fmt_string = fmt_string + str(packet_len_len) + "s"
                             header_parts = struct.unpack_from(fmt_string, datagram_data)
-                            packet_len = quic_decode.decode_variable_length_int(header_parts[-1])
+                            packet_len = decode_variable_length_int(header_parts[-1])
 
                             pn_offset += packet_len_len + token_len_len + token_len
                             sample_offset = pn_offset + 4
 
                             sample = datagram_data[sample_offset: sample_offset + 16]
 
-                            initial_keys = quic_key_generation.dev_initial_keys(dcid)
+                            initial_keys = dev_initial_keys(dcid, version)
 
                             if isserver:
                                 hp_key = initial_keys["server_initial_hp"]
@@ -182,18 +184,18 @@ def get_quic_header_data(packet: Packet, isserver):
 
                         case 0x01 | 0x02:  # if packet is handshake or RTT-0
 
-                            packet_len_len = quic_decode.get_variable_length_int_length(
+                            packet_len_len = get_variable_length_int_length(
                                 struct.unpack_from(fmt_string + "s", datagram_data)[-1])
                             fmt_string = fmt_string + str(packet_len_len) + "s"
                             header_parts = struct.unpack_from(fmt_string, datagram_data)
-                            packet_len = quic_decode.decode_variable_length_int(header_parts[-1])
+                            packet_len = decode_variable_length_int(header_parts[-1])
 
                             pn_offset += packet_len_len
                             sample_offset = pn_offset + 4
 
                             sample = datagram_data[sample_offset: sample_offset + 16]
 
-                            initial_keys = quic_key_generation.dev_initial_keys(dcid)
+                            initial_keys = dev_initial_keys(dcid)
 
                             if isserver:
                                 hp_key = initial_keys["server_initial_hp"]
@@ -234,7 +236,7 @@ def get_quic_header_data(packet: Packet, isserver):
                             continue
 
                 case 0:  # if header is short header
-                    packet = quic_packet.ShortQuicPacket(packet_type=QuicPacketType.RTT_1,
+                    packet = ShortQuicPacket(packet_type=QuicPacketType.RTT_1,
                                                          dcid=datagram_data[2:23],
                                                          isserver=isserver,
                                                          packet_num=-1,
