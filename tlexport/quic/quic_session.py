@@ -210,7 +210,10 @@ class QuicSession:
         except:
             logging.warning(f"Could not decrypt Quic Packet: {quic_packet.dcid}")
 
-    def handle_packet(self, packet: Packet, dcid: bytes):
+    def handle_packet(self, packet: Packet, dcid: bytes, quic_version: QuicVersion):
+        if self.quic_version == QuicVersion.UNKNOWN:
+            self.quic_version = quic_version
+
         if "Initial" not in self.decryptors.keys():
             self.set_initial_decryptor(dcid)
 

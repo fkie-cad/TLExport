@@ -12,6 +12,7 @@ from tlexport.quic.quic_dissector import get_header_type
 from tlexport.quic.quic_packet import QuicHeaderType
 from tlexport.quic.quic_session import QuicSession
 from tlexport.session import Session
+from tlexport.quic.quic_decode import QuicVersion
 
 server_ports = [443, 44330]
 keylog = []
@@ -44,7 +45,8 @@ def arg_parser_init():
 
     parser.add_argument("-f", "--filter",
                         help="filter log messages by file, add files you want to filter", nargs="+")
-    parser.add_argument("-g", "--greasy", help="ignore dtls, due to changes in the QUIC fixed bit, RFC 9287", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("-g", "--greasy", help="ignore dtls, due to changes in the QUIC fixed bit, RFC 9287",
+                        action=argparse.BooleanOptionalAction, default=False)
 
     return parser.parse_args()
 
@@ -75,33 +77,42 @@ def handle_quic_packet(packet: Packet, keylog, quic_sessions: list[QuicSession],
     packet_payload = packet.tls_data
     header_type = get_header_type(packet_payload)
 
+    quic_version = QuicVersion.UNKNOWN
+
     if header_type == QuicHeaderType.LONG:
         dcid_len = packet_payload[5]
         dcid = packet_payload[6: 6 + dcid_len]
+        quic_vers_num = int.from_bytes(packet_payload[1:5], "big", signed=False)
+        match quic_vers_num:
+            case 1:
+                quic_version = QuicVersion.V1
+            case 2:
+                quic_version = QuicVersion.V2
+            case _:
+                quic_version = QuicVersion.UNKNOWN
 
     for session in quic_sessions:
         # first try matching connection IDs
         if QuicHeaderType.LONG:
             if dcid in session.client_cids or dcid in session.server_cids:
-                session.handle_packet(packet, dcid)
+                session.handle_packet(packet, dcid, quic_version)
                 return
         else:
             # match by checking all known cid lengths for session
             for cid in session.client_cids + session.server_cids:
                 if cid == packet_payload[1:1 + len(cid)]:
-                    session.handle_packet(packet, dcid)
+                    session.handle_packet(packet, dcid, quic_version)
                     return
 
         # check matching ip address and port for zero length cids
         if session.matches_session_dgram(packet.ip_src, packet.ip_dst, packet.sport, packet.dport):
-            session.handle_packet(packet, dcid)
+            session.handle_packet(packet, dcid, quic_version)
             return
 
     if header_type != QuicHeaderType.SHORT:
         new_session = QuicSession(packet, server_ports, keylog, portmap)
         sessions.append(new_session)
-        new_session.handle_packet(packet, dcid)
-
+        new_session.handle_packet(packet, dcid, quic_version)
 
 
 def run():
@@ -167,7 +178,7 @@ def run():
             # using fixed bit for differentiating between QUIC and D-TLS (Second bit of first Byte is always 1 in QUIC)
             if ((int(packet.tls_data[0]) & 0x40) >> 6) == 1 or args.greasy:
                 # QUIC Packet
-                # handle_quic_packet(packet, keylog, quic_sessions, portmap)
+                handle_quic_packet(packet, keylog, quic_sessions, portmap)
                 pass
 
             else:
