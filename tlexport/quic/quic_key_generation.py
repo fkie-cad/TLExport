@@ -7,7 +7,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher
 from cryptography.hazmat.primitives.ciphers.algorithms import AES, ChaCha20
 from cryptography.hazmat.primitives.ciphers.modes import ECB
 from tlexport.quic.quic_decryptor import QuicDecryptor
-from tlexport.quic.quic_dissector import QuicVersion
+from tlexport.quic.quic_decode import QuicVersion
 
 
 def dev_quic_keys(key_length, secret_list, hash_fun: hashes.HashAlgorithm, quic_version: QuicVersion):

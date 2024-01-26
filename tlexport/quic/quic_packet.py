@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class QuicPacketType(Enum):
     INITIAL = 0x00
     RTT_O = 0x01
@@ -25,8 +26,10 @@ class QuicPacket:
 
 
 class LongQuicPacket(QuicPacket):
-    def __init__(self, packet_type: QuicPacketType, version: int, dcid_len: int, dcid: bytes, scid_len: int, scid: bytes,
-                 packet_len: int = None, packet_num: int = None, payload: bytes = None, token_len: int = None, token: bytes = None,
+    def __init__(self, packet_type: QuicPacketType, version: int, dcid_len: int, dcid: bytes, scid_len: int,
+                 scid: bytes,
+                 packet_len: int = None, packet_num: int = None, payload: bytes = None, token_len: int = None,
+                 token: bytes = None,
                  retry_token: bytes = None, retry_integ_tag: bytes = None, isserver: bool = False):
 
         super().__init__(QuicHeaderType.LONG, packet_type, isserver)
@@ -57,7 +60,8 @@ class LongQuicPacket(QuicPacket):
 class ShortQuicPacket(QuicPacket):
 
     # init for 1-RTT Packet
-    def __init__(self, packet_type: QuicPacketType, key_phase: int, dcid: bytes, packet_num: int, payload: bytes, isserver: bool):
+    def __init__(self, packet_type: QuicPacketType, key_phase: int, dcid: bytes, packet_num: int, payload: bytes,
+                 isserver: bool):
         super().__init__(QuicHeaderType.SHORT, packet_type, isserver)
         self.key_phase = key_phase
         self.dcid = dcid

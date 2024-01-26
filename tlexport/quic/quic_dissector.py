@@ -8,12 +8,6 @@ from tlexport.quic.quic_packet import LongQuicPacket, ShortQuicPacket, QuicPacke
 from enum import Enum
 
 
-class QuicVersion(Enum):
-    UNKNOWN = 0
-    V1 = 1
-    V2 = 2
-
-
 def byte_xor(byte1, byte2):
     result = b""
     for byte1, byte2 in zip(byte1, byte2):
@@ -237,11 +231,11 @@ def get_quic_header_data(packet: Packet, isserver):
 
                 case 0:  # if header is short header
                     packet = ShortQuicPacket(packet_type=QuicPacketType.RTT_1,
-                                                         dcid=datagram_data[2:23],
-                                                         isserver=isserver,
-                                                         packet_num=-1,
-                                                         key_phase=-1,
-                                                         payload=datagram_data)
+                                             dcid=datagram_data[2:23],
+                                             isserver=isserver,
+                                             packet_num=-1,
+                                             key_phase=-1,
+                                             payload=datagram_data)
                     packet_buf.append(packet)
 
                 case _:

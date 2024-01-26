@@ -12,7 +12,8 @@ from tlexport.quic.quic_frame import CryptoFrame, StreamFrame, NewConnectionIdFr
 from tlexport.quic.quic_key_generation import dev_quic_keys, dev_initial_keys, key_update
 from tlexport.quic.quic_packet import QuicPacket, ShortQuicPacket, LongQuicPacket, QuicPacketType
 from tlexport.quic.quic_tls_parser import QuicTlsSession
-from tlexport.quic.quic_dissector import get_quic_header_data, QuicVersion
+from tlexport.quic.quic_dissector import get_quic_header_data
+from tlexport.quic.quic_decode import QuicVersion
 
 PACKET_TYPE_MAP = {
     QuicPacketType.INITIAL: (QuicPacketType.INITIAL,),
