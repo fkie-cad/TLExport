@@ -218,7 +218,7 @@ class QuicSession:
             self.set_initial_decryptor(dcid)
 
         # TODO extract QUIC-Packets
-        quic_packets = get_quic_header_data(packet, False)
+        quic_packets = get_quic_header_data(packet, False, self.server_cids | self.client_cids, self.keys)
 
         self.handle_packets()
 

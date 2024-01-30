@@ -99,7 +99,7 @@ def handle_quic_packet(packet: Packet, keylog, quic_sessions: list[QuicSession],
                 return
         else:
             # match by checking all known cid lengths for session
-            for cid in session.client_cids + session.server_cids:
+            for cid in session.client_cids | session.server_cids:
                 if cid == packet_payload[1:1 + len(cid)]:
                     session.handle_packet(packet, dcid, quic_version)
                     return

@@ -22,6 +22,13 @@ def byte_and(byte1, byte2):
     return result
 
 
+def get_header_type(payload: bytes):
+    if payload[0] >> 7 & 1 == 1:
+        return QuicHeaderType.LONG
+    else:
+        return QuicHeaderType.SHORT
+
+
 def remove_header_protection(header_type, sample, first_packet_byte, hp_key, datagram_data,
                              pn_offset) -> tuple:
     mask = make_hp_mask(hp_key, sample)
@@ -77,7 +84,7 @@ def finish_short_header(cid: bytes, data: bytes, isserver):
     return packet
 
 
-def get_quic_header_data(packet: Packet, isserver):
+def get_quic_header_data(packet: Packet, isserver, connection_ids, keys):
     packet_buf = []
     follow_up_packet = 1
 
@@ -247,8 +254,4 @@ def get_quic_header_data(packet: Packet, isserver):
         return packet_buf
 
 
-def get_header_type(payload: bytes):
-    if payload[0] >> 7 & 1 == 1:
-        return QuicHeaderType.LONG
-    else:
-        return QuicHeaderType.SHORT
+
