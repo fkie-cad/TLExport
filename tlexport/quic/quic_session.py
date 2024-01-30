@@ -197,17 +197,23 @@ class QuicSession:
                 case QuicPacketType.RTT_O:
                     decryptor = self.decryptors["Early"]
         try:
-            packet_number = self.get_full_packet_number(quic_packet)
+            if quic_packet.header_type == ShortQuicPacket:
+                packet_number = self.get_full_packet_number(quic_packet)
+            else:
+                packet_number = quic_packet.packet_num
 
-            # payload = decryptor.decrypt(quic_packet.payload, packet_number, quic_packet, quic_packet.isserver)
-            payload = b""
+            associated_data = quic_packet.first_byte + quic_packet.version + quic_packet.dcid_len + quic_packet.dcid + quic_packet.scid_len + quic_packet.scid + quic_packet.packet_len + quic_packet.packet_num
+            #padding = b"\x00" * (8-len(packet_number))
+            payload = decryptor.decrypt(quic_packet.payload, b"\x00" * (8-len(packet_number))+packet_number, associated_data, quic_packet.isserver)
+            #payload = b""
 
             frames = parse_frames(payload, quic_packet)
 
             for frame in frames:
                 self.handle_frame(frame)
 
-        except:
+        except Exception as e:
+            print(e)
             logging.warning(f"Could not decrypt Quic Packet: {quic_packet.dcid}")
 
     def packet_isserver(self, packet, dcid):
@@ -231,6 +237,15 @@ class QuicSession:
 
         # TODO extract QUIC-Packets
         quic_packets = get_quic_header_data(packet, isserver, self.server_cids | self.client_cids, self.keys)
+        if quic_packets[0].version == b"\x00\x00\x00\x01":
+            self.quic_version = QuicVersion.V1
+        elif quic_packets[0].version == b"\x00\x00\x00\x02":
+            self.quic_version = QuicVersion.V2
+
+        self.packet_buffer_quic.extend(quic_packets)
+
+        if "Initial" not in self.decryptors.keys():
+            self.set_initial_decryptor(dcid)
 
         self.handle_packets()
 

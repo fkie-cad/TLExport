@@ -1,4 +1,5 @@
 from enum import Enum
+from tlexport.quic.quic_decode import QuicVersion
 
 
 class QuicPacketType(Enum):
@@ -19,20 +20,21 @@ class QuicHeaderType(Enum):
 
 
 class QuicPacket:
-    def __init__(self, header_type: QuicHeaderType, packet_type: QuicPacketType, isserver: bool):
+    def __init__(self, header_type: QuicHeaderType, packet_type: QuicPacketType, isserver: bool, first_byte: bytes):
         self.header_type = header_type
         self.packet_type = packet_type
         self.isserver = isserver
+        self.first_byte = first_byte
 
 
 class LongQuicPacket(QuicPacket):
-    def __init__(self, packet_type: QuicPacketType, version: int, dcid_len: int, dcid: bytes, scid_len: int,
-                 scid: bytes,
-                 packet_len: int = None, packet_num: int = None, payload: bytes = None, token_len: int = None,
+    def __init__(self, packet_type: QuicPacketType, version: bytes, dcid_len: bytes, dcid: bytes, scid_len: bytes,
+                 scid: bytes, first_byte: bytes,
+                 packet_len: bytes = None, packet_num: bytes = None, payload: bytes = None, token_len: int = None,
                  token: bytes = None,
                  retry_token: bytes = None, retry_integ_tag: bytes = None, isserver: bool = False):
 
-        super().__init__(QuicHeaderType.LONG, packet_type, isserver)
+        super().__init__(QuicHeaderType.LONG, packet_type, isserver, first_byte)
         self.version = version
         self.dcid_len = dcid_len
         self.dcid = dcid
@@ -61,8 +63,8 @@ class ShortQuicPacket(QuicPacket):
 
     # init for 1-RTT Packet
     def __init__(self, packet_type: QuicPacketType, key_phase: int, dcid: bytes, packet_num: int, payload: bytes,
-                 isserver: bool):
-        super().__init__(QuicHeaderType.SHORT, packet_type, isserver)
+                 isserver: bool, first_byte: bytes):
+        super().__init__(QuicHeaderType.SHORT, packet_type, isserver, first_byte)
         self.key_phase = key_phase
         self.dcid = dcid
         self.packet_num = packet_num
