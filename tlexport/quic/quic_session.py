@@ -210,6 +210,16 @@ class QuicSession:
         except:
             logging.warning(f"Could not decrypt Quic Packet: {quic_packet.dcid}")
 
+    def packet_isserver(self, packet, dcid):
+        if dcid in self.server_cids:
+            return False
+        elif dcid in self.client_cids:
+            return True
+        elif packet.ip_src == self.client_ip and packet.sport == self.client_port:
+            return False
+        else:
+            return True
+
     def handle_packet(self, packet: Packet, dcid: bytes, quic_version: QuicVersion):
         if self.quic_version == QuicVersion.UNKNOWN:
             self.quic_version = quic_version
@@ -217,8 +227,10 @@ class QuicSession:
         if "Initial" not in self.decryptors.keys():
             self.set_initial_decryptor(dcid)
 
+        isserver = self.packet_isserver(packet, dcid)
+
         # TODO extract QUIC-Packets
-        quic_packets = get_quic_header_data(packet, False, self.server_cids | self.client_cids, self.keys)
+        quic_packets = get_quic_header_data(packet, isserver, self.server_cids | self.client_cids, self.keys)
 
         self.handle_packets()
 
