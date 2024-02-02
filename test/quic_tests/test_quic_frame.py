@@ -5,7 +5,7 @@ from tlexport.quic.quic_packet import QuicPacket, QuicPacketType, QuicHeaderType
 
 class TestQuicFrameGeneration(TestCase):
     def setUp(self):
-        self.quic_packet = QuicPacket(QuicHeaderType.LONG, QuicPacketType.HANDSHAKE, False)
+        self.quic_packet = QuicPacket(QuicHeaderType.LONG, QuicPacketType.HANDSHAKE, False, first_byte=None)
 
     def test_ping_and_padding(self):
         parsed_frames = frames.parse_frames(bytes.fromhex("010000"), self.quic_packet)

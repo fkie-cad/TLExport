@@ -197,10 +197,8 @@ class QuicSession:
                 case QuicPacketType.RTT_O:
                     decryptor = self.decryptors["Early"]
         try:
-            if quic_packet.header_type == ShortQuicPacket:
-                packet_number = self.get_full_packet_number(quic_packet)
-            else:
-                packet_number = quic_packet.packet_num
+
+            packet_number = self.get_full_packet_number(quic_packet)
 
             associated_data = quic_packet.first_byte + quic_packet.version + quic_packet.dcid_len + quic_packet.dcid + quic_packet.scid_len + quic_packet.scid + quic_packet.packet_len + quic_packet.packet_num
             #padding = b"\x00" * (8-len(packet_number))
@@ -338,6 +336,14 @@ class QuicSession:
             largest_pkn = self.packet_number_server[PACKET_TYPE_MAP[quic_packet.packet_type]]
         else:
             largest_pkn = self.packet_number_client[PACKET_TYPE_MAP[quic_packet.packet_type]]
+
+        if quic_packet.packet_num > largest_pkn == 0:
+            if quic_packet.isserver:
+                self.packet_number_server[PACKET_TYPE_MAP[quic_packet.packet_type]] = quic_packet.packet_num
+            else:
+                self.packet_number_client[PACKET_TYPE_MAP[quic_packet.packet_type]] = quic_packet.packet_num
+
+            return quic_packet.packet_num
 
         truncated_pkn = quic_packet.packet_num
         truncated_pkn_len = quic_packet.packet_num_len
