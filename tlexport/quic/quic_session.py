@@ -200,9 +200,10 @@ class QuicSession:
 
             packet_number = self.get_full_packet_number(quic_packet)
 
-            associated_data = quic_packet.first_byte + quic_packet.version + quic_packet.dcid_len + quic_packet.dcid + quic_packet.scid_len + quic_packet.scid + quic_packet.packet_len + quic_packet.packet_num
-            #padding = b"\x00" * (8-len(packet_number))
-            payload = decryptor.decrypt(quic_packet.payload, b"\x00" * (8-len(packet_number))+packet_number, associated_data, quic_packet.isserver)
+            padding = b"\x00" * (8-len(packet_number))
+            associated_data = quic_packet.first_byte + quic_packet.version + quic_packet.dcid_len + quic_packet.dcid + quic_packet.scid_len + quic_packet.scid + quic_packet.token_len_bytes + quic_packet.token + quic_packet.packet_len_bytes + quic_packet.packet_num
+            print(associated_data.hex())
+            payload = decryptor.decrypt(quic_packet.payload, packet_number, associated_data, quic_packet.isserver)
             #payload = b""
 
             frames = parse_frames(payload, quic_packet)

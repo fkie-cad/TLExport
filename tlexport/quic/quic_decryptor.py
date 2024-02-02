@@ -18,8 +18,9 @@ class QuicDecryptor:
             decryptor = self.client_bulk_cipher
             iv = self.client_iv
 
-        packet_number = b"\x00" * (12 - len(packet_number)) + packet_number
+        packet_number = b"\x00" * (len(iv) - len(packet_number)) + packet_number
 
         nonce = bytes([_a ^ _b for _a, _b in zip(packet_number, iv)])
+        print(nonce.hex())
 
         return decryptor.decrypt(nonce, ciphertext, associated_data)

@@ -30,8 +30,8 @@ class QuicPacket:
 class LongQuicPacket(QuicPacket):
     def __init__(self, packet_type: QuicPacketType, version: bytes, dcid_len: bytes, dcid: bytes, scid_len: bytes,
                  scid: bytes, first_byte: bytes,
-                 packet_len: bytes = None, packet_num: bytes = None, payload: bytes = None, token_len: int = None,
-                 token: bytes = None,
+                 packet_len: bytes = None, packet_len_bytes: bytes = None, packet_num: bytes = None, payload: bytes = None, token_len: int = None,
+                 token_len_bytes: bytes = None, token: bytes = None,
                  retry_token: bytes = None, retry_integ_tag: bytes = None, isserver: bool = False):
 
         super().__init__(QuicHeaderType.LONG, packet_type, isserver, first_byte)
@@ -44,14 +44,17 @@ class LongQuicPacket(QuicPacket):
         match packet_type:
             case QuicPacketType.INITIAL:
                 self.token_len = token_len
+                self.token_len_bytes = token_len_bytes
                 self.token = token
                 self.packet_len = packet_len
+                self.packet_len_bytes = packet_len_bytes
                 self.packet_num = packet_num
                 self.payload = payload
 
             case [QuicPacketType.HANDSHAKE, QuicPacketType.RTT_O]:  # handshake and RTT-0 have same structure
                 self.packet_len = packet_len
                 self.packet_num = packet_num
+                self.packet_len_bytes = packet_len_bytes
                 self.payload = payload
 
             case QuicPacketType.RETRY:
