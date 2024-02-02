@@ -235,15 +235,9 @@ class QuicSession:
 
         # TODO extract QUIC-Packets
         quic_packets = get_quic_header_data(packet, isserver, self.server_cids | self.client_cids, self.keys)
-        if quic_packets[0].version == b"\x00\x00\x00\x01":
-            self.quic_version = QuicVersion.V1
-        elif quic_packets[0].version == b"\x00\x00\x00\x02":
-            self.quic_version = QuicVersion.V2
 
         self.packet_buffer_quic.extend(quic_packets)
 
-        if "Initial" not in self.decryptors.keys():
-            self.set_initial_decryptor(dcid)
 
         self.handle_packets()
 
@@ -331,22 +325,24 @@ class QuicSession:
         self.keys.update(keys)
         self.decryptors["Initial"] = dec
 
-    def get_full_packet_number(self, quic_packet: ShortQuicPacket | LongQuicPacket) -> int:
+    def get_full_packet_number(self, quic_packet: ShortQuicPacket | LongQuicPacket) -> bytes:
         if quic_packet.isserver:
             largest_pkn = self.packet_number_server[PACKET_TYPE_MAP[quic_packet.packet_type]]
         else:
             largest_pkn = self.packet_number_client[PACKET_TYPE_MAP[quic_packet.packet_type]]
 
-        if quic_packet.packet_num > largest_pkn == 0:
+        packet_number_int = int.from_bytes(quic_packet.packet_num, "big", signed=False)
+
+        if packet_number_int > largest_pkn == 0:
             if quic_packet.isserver:
-                self.packet_number_server[PACKET_TYPE_MAP[quic_packet.packet_type]] = quic_packet.packet_num
+                self.packet_number_server[PACKET_TYPE_MAP[quic_packet.packet_type]] = packet_number_int
             else:
-                self.packet_number_client[PACKET_TYPE_MAP[quic_packet.packet_type]] = quic_packet.packet_num
+                self.packet_number_client[PACKET_TYPE_MAP[quic_packet.packet_type]] = packet_number_int
 
             return quic_packet.packet_num
 
-        truncated_pkn = quic_packet.packet_num
-        truncated_pkn_len = quic_packet.packet_num_len
+        truncated_pkn = packet_number_int
+        truncated_pkn_len = len(quic_packet.packet_num)
 
         pkn_len_bits = truncated_pkn_len * 8
 
@@ -356,18 +352,21 @@ class QuicSession:
         pkn_mask = pkn_window - 1
 
         candidate_pkn = (expected_pkn & ~pkn_mask) | truncated_pkn
+
         if candidate_pkn <= expected_pkn - pkn_hwindow and candidate_pkn < (1 << 62) - pkn_window:
-            return candidate_pkn + pkn_window
-        if candidate_pkn > expected_pkn + pkn_hwindow and candidate_pkn >= pkn_window:
-            return candidate_pkn - pkn_window
+            out_pkn = candidate_pkn + pkn_window
+        elif candidate_pkn > expected_pkn + pkn_hwindow and candidate_pkn >= pkn_window:
+            out_pkn = candidate_pkn - pkn_window
+        else:
+            out_pkn = candidate_pkn
 
-        if candidate_pkn > largest_pkn:
+        if out_pkn > largest_pkn:
             if quic_packet.isserver:
-                self.packet_number_server[PACKET_TYPE_MAP[quic_packet.packet_type]] = candidate_pkn
+                self.packet_number_server[PACKET_TYPE_MAP[quic_packet.packet_type]] = out_pkn
             else:
-                self.packet_number_client[PACKET_TYPE_MAP[quic_packet.packet_type]] = candidate_pkn
+                self.packet_number_client[PACKET_TYPE_MAP[quic_packet.packet_type]] = out_pkn
 
-        return candidate_pkn
+        return int.to_bytes(out_pkn, 8, "big", signed=False)
 
     def set_tls_decryptors(self, client_random, ciphersuite: bytes):
 
