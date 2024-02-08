@@ -200,7 +200,11 @@ class QuicSession:
 
             packet_number = self.get_full_packet_number(quic_packet)
 
-            associated_data = quic_packet.first_byte + quic_packet.version + quic_packet.dcid_len + quic_packet.dcid + quic_packet.scid_len + quic_packet.scid + quic_packet.token_len_bytes + quic_packet.token + quic_packet.packet_len_bytes + packet_number
+            if isinstance(quic_packet, LongQuicPacket):
+                associated_data = quic_packet.first_byte + quic_packet.version + quic_packet.dcid_len + quic_packet.dcid + quic_packet.scid_len + quic_packet.scid + quic_packet.token_len_bytes + quic_packet.token + quic_packet.packet_len_bytes + packet_number
+            else:
+                associated_data = quic_packet.first_byte + quic_packet.dcid + quic_packet.packet_num
+            print(associated_data)
             payload = decryptor.decrypt(quic_packet.payload, packet_number, associated_data, quic_packet.isserver)
 
             frames = parse_frames(payload, quic_packet)
@@ -232,12 +236,12 @@ class QuicSession:
         isserver = self.packet_isserver(packet, dcid)
 
         # TODO extract QUIC-Packets
-        quic_packets = get_quic_header_data(packet, isserver, self.server_cids | self.client_cids, self.keys)
+        while len(packet.tls_data) != 0:
+            quic_packets, packet = get_quic_header_data(packet, isserver, self.server_cids | self.client_cids, self.keys)
 
-        self.packet_buffer_quic.extend(quic_packets)
+            self.packet_buffer_quic.extend(quic_packets)
 
-
-        self.handle_packets()
+            self.handle_packets()
 
     def handle_packets(self):
         for quic_packet in self.packet_buffer_quic:
