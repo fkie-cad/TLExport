@@ -25,10 +25,10 @@ def arg_parser_init():
     parser.add_argument("-p", "--serverports", help="additional ports to test for TLS-Connections", nargs="+",
                         default=[443])
     parser.add_argument("-i", "--infile", help="path of input file",
-                        default="tlexport/pcaps_und_keylogs/quic_pcaps/all_ciphersuites.pcapng")
+                        default="pcaps_und_keylogs/quic_pcaps/all_ciphersuites.pcapng")
     parser.add_argument("-o", "--outfile", help="path of output file", default="out.pcapng")
     parser.add_argument("-s", "--sslkeylog", help="path to sslkeylogfile",
-                        default="tlexport/pcaps_und_keylogs/quic_pcaps/all_ciphersuites.log")
+                        default="pcaps_und_keylogs/quic_pcaps/all_ciphersuites.log")
     # default False due to checksum offloading producing wrong checksums in Packet Capture
     parser.add_argument("-c", "--checksumTest", help="enable for checking tcp Checksums",
                         action=argparse.BooleanOptionalAction, default=False)
@@ -111,7 +111,7 @@ def handle_quic_packet(packet: Packet, keylog, quic_sessions: list[QuicSession],
 
     if header_type != QuicHeaderType.SHORT:
         new_session = QuicSession(packet, server_ports, keylog, portmap)
-        sessions.append(new_session)
+        quic_sessions.append(new_session)
         new_session.handle_packet(packet, dcid, quic_version)
 
 

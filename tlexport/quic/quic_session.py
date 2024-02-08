@@ -201,7 +201,7 @@ class QuicSession:
             packet_number = self.get_full_packet_number(quic_packet)
 
             if isinstance(quic_packet, LongQuicPacket):
-                associated_data = quic_packet.first_byte + quic_packet.version + quic_packet.dcid_len + quic_packet.dcid + quic_packet.scid_len + quic_packet.scid + quic_packet.token_len_bytes + quic_packet.token + quic_packet.packet_len_bytes + packet_number
+                associated_data = quic_packet.first_byte + quic_packet.version + quic_packet.dcid_len + quic_packet.dcid + quic_packet.scid_len + quic_packet.scid + quic_packet.token_len_bytes + quic_packet.token + quic_packet.packet_len_bytes + quic_packet.packet_num
             else:
                 associated_data = quic_packet.first_byte + quic_packet.dcid + quic_packet.packet_num
             print(associated_data)
@@ -230,7 +230,7 @@ class QuicSession:
         if self.quic_version == QuicVersion.UNKNOWN:
             self.quic_version = quic_version
 
-        if "Initial" not in self.decryptors.keys():
+        if "Initial" not in list(self.decryptors.keys()):
             self.set_initial_decryptor(dcid)
 
         isserver = self.packet_isserver(packet, dcid)
@@ -266,6 +266,7 @@ class QuicSession:
                 else:
                     self.client_cids.add(quic_packet.scid)
                     self.server_cids.add(quic_packet.dcid)
+        self.packet_buffer_quic = []
 
     def set_server_client_address(self, packet, server_ports) -> bool:
         # Returns True if packet is from server, else it returns False
@@ -406,7 +407,7 @@ class QuicSession:
 
         key: Key
         for key in self.keylog:
-            if key.client_random == client_random:
+            if bytes.fromhex(key.client_random) == client_random:
                 session_keys.append(key)
 
         keys = dev_quic_keys(self.key_length, session_keys, self.hash_fun(), self.quic_version)
