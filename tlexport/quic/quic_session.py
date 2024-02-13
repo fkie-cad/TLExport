@@ -180,7 +180,8 @@ class QuicSession:
         decryptor: QuicDecryptor
         if isinstance(quic_packet, ShortQuicPacket):
             quic_packet = cast(ShortQuicPacket, quic_packet)
-            self.check_key_epoch(quic_packet.key_phase, quic_packet.isserver)
+            if quic_packet.packet_type == QuicPacketType.RTT_1:
+                self.check_key_epoch(quic_packet.key_phase, quic_packet.isserver)
 
             if quic_packet.isserver:
                 decryptor = self.decryptors["Application"][self.epoch_server]

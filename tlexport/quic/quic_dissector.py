@@ -227,7 +227,7 @@ def get_quic_header_data(in_packet: Packet, isserver, guessed_dcid: bytes = None
                 fmt_string += str(len(datagram_data) - (1 + len(guessed_dcid) + decrypted_header[-1])) + "s"
                 header_parts = struct.unpack_from(fmt_string, datagram_data)
                 payload = header_parts[-1]
-                key_phase = int.from_bytes(byte_and(decrypted_header[0], b"\x01"), "big")
+                key_phase = decrypted_header[0][0] >> 6 & 1
 
                 total_packet_len = 1 + len(guessed_dcid) + decrypted_header[-1] + len(payload)
 
