@@ -51,7 +51,7 @@ class LongQuicPacket(QuicPacket):
                 self.packet_num = packet_num
                 self.payload = payload
 
-            case [QuicPacketType.HANDSHAKE, QuicPacketType.RTT_O]:  # handshake and RTT-0 have same structure
+            case QuicPacketType.HANDSHAKE | QuicPacketType.RTT_O:  # handshake and RTT-0 have same structure
                 self.packet_len = packet_len
                 self.packet_num = packet_num
                 self.packet_len_bytes = packet_len_bytes

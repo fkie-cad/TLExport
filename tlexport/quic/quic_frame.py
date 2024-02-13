@@ -3,7 +3,7 @@ from tlexport.quic.quic_packet import QuicPacket, ShortQuicPacket, LongQuicPacke
 
 
 def parse_frames(payload: bytes, src_packet: ShortQuicPacket | LongQuicPacket | QuicPacket):
-    payload = bytearray(payload)
+    #payload = payload # TODO: Changed from bytearray to bytes
 
     frames = []
     keys = frame_type.keys()
