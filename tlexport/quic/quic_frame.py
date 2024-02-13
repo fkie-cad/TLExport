@@ -349,7 +349,7 @@ class ConnectionCloseFrame(Frame):
         index = self.length
 
         if self.frame_type == 0x1c:
-            self.length += get_variable_length_int_length(payload[index + index + 1])
+            self.length += get_variable_length_int_length(payload[index:index + 1])
             self.close_frame_type = decode_variable_length_int(payload[index:self.length])
             index = self.length
 
