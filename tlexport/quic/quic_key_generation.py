@@ -150,7 +150,7 @@ def key_update(decryptor_n: QuicDecryptor, hash_fun: hashes.HashAlgorithm, key_l
 
     server_n = decryptor_n.keys[4]
     client_n = decryptor_n.keys[5]
-
+    hash_fun = hash_fun()
     server_n_1 = HKDFExpand(hash_fun, hash_fun.digest_size, ku_info).derive(
         server_n)
     client_n_1 = HKDFExpand(hash_fun, hash_fun.digest_size, ku_info).derive(
