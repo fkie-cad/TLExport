@@ -2,7 +2,7 @@ import struct
 
 from tlexport.packet import Packet
 from tlexport.quic.quic_decode import decode_variable_length_int, get_variable_length_int_length, QuicVersion
-from tlexport.quic.quic_key_generation import dev_quic_keys, make_hp_mask, dev_initial_keys
+from tlexport.quic.quic_key_generation import dev_quic_keys, make_hp_mask, dev_initial_keys, make_chacha_hp_mask
 from tlexport.quic.quic_packet import QuicPacketType, QuicHeaderType
 from tlexport.quic.quic_packet import LongQuicPacket, ShortQuicPacket, QuicPacketType, QuicHeaderType
 from enum import Enum
@@ -42,8 +42,12 @@ def get_packet_type(datagram_data: bytes):
 
 
 def remove_header_protection(header_type, sample, first_packet_byte, hp_key, datagram_data,
-                             pn_offset) -> tuple:
-    mask = make_hp_mask(hp_key, sample)
+                             pn_offset, ciphersuite: bytes) -> tuple:
+
+    if ciphersuite == b'\x13\x03':
+        mask = make_chacha_hp_mask(hp_key, sample)
+    else:
+        mask = make_hp_mask(hp_key, sample)
 
     if header_type == QuicHeaderType.LONG:
         first_packet_byte = byte_xor(bytes([first_packet_byte]), byte_and(bytes([mask[0]]), bytes.fromhex("0f")))
@@ -58,7 +62,7 @@ def remove_header_protection(header_type, sample, first_packet_byte, hp_key, dat
     return first_packet_byte, packet_number_field, pn_len
 
 
-def get_quic_header_data(in_packet: Packet, isserver, guessed_dcid: bytes = None, keys: {} = None):
+def get_quic_header_data(in_packet: Packet, isserver, guessed_dcid: bytes = None, keys: {} = None, ciphersuite: bytes = None):
     packet_buf = []
 
     datagram_data = in_packet.tls_data
@@ -134,7 +138,7 @@ def get_quic_header_data(in_packet: Packet, isserver, guessed_dcid: bytes = None
                                                                     first_packet_byte=header_parts[0],
                                                                     hp_key=hp_key,
                                                                     datagram_data=datagram_data,
-                                                                    pn_offset=pn_offset)
+                                                                    pn_offset=pn_offset, ciphersuite=None)
 
                         fmt_string += str(decrypted_header[-1]) + "s"
                         fmt_string += str(int.from_bytes(packet_len, "big") - decrypted_header[-1]) + "s"
@@ -178,7 +182,7 @@ def get_quic_header_data(in_packet: Packet, isserver, guessed_dcid: bytes = None
                                                                     first_packet_byte=header_parts[0],
                                                                     hp_key=hp_key,
                                                                     datagram_data=datagram_data,
-                                                                    pn_offset=pn_offset)
+                                                                    pn_offset=pn_offset, ciphersuite=ciphersuite)
 
                         fmt_string += str(decrypted_header[-1]) + "s"
                         fmt_string += str(int.from_bytes(packet_len, "big") - decrypted_header[-1]) + "s"
@@ -221,7 +225,7 @@ def get_quic_header_data(in_packet: Packet, isserver, guessed_dcid: bytes = None
                                                             hp_key=hp_key,
                                                             sample=sample,
                                                             pn_offset=pn_offset,
-                                                            datagram_data=datagram_data)
+                                                            datagram_data=datagram_data, ciphersuite=ciphersuite)
 
                 fmt_string += str(decrypted_header[-1]) + "s"
                 fmt_string += str(len(datagram_data) - (1 + len(guessed_dcid) + decrypted_header[-1])) + "s"

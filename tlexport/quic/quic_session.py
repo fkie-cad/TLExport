@@ -245,7 +245,7 @@ class QuicSession:
 
         # TODO extract QUIC-Packets
         while len(packet.tls_data) != 0:
-            quic_packets, packet = get_quic_header_data(in_packet=packet, isserver=isserver, guessed_dcid=dcid, keys=self.keys)
+            quic_packets, packet = get_quic_header_data(in_packet=packet, isserver=isserver, guessed_dcid=dcid, keys=self.keys, ciphersuite=self.tls_session.ciphersuite)
 
             self.packet_buffer_quic.extend(quic_packets)
 
