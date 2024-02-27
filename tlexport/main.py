@@ -1,13 +1,17 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import dpkt
 import argparse
 import logging
 
-from tlexport.packet import Packet
-import tlexport.keylog_reader as keylog_reader
-from tlexport.dpkt_dsb import Reader
-from tlexport.session import Session
-from tlexport.checksums import calculate_checksum_tcp
-from tlexport.log import set_logger
+from .packet import Packet
+from . import keylog_reader
+from .dpkt_dsb import Reader
+from .session import Session
+from .checksums import calculate_checksum_tcp
+from .log import set_logger
+from .__init__ import __version__
 
 server_ports = [443]
 keylog = []
@@ -15,7 +19,7 @@ sessions = []
 
 
 def arg_parser_init():
-    parser = argparse.ArgumentParser(description="Adding Decryption Secret Block Support to Zeek")
+    parser = argparse.ArgumentParser(description="TLExport - GENERATING DECRYPTED TLS PCAPS")
     parser.add_argument("-p", "--serverports", help="additional ports to test for TLS-Connections", nargs="+",
                         default=[443])
     parser.add_argument("-i", "--infile", help="path of input file",
@@ -32,12 +36,12 @@ def arg_parser_init():
                              "serverport <serverport:outputport>",
                         nargs="+",
                         default=["443:8080"])
-    parser.add_argument("-d", "--debug",
-                        help="enable logger and set log-level, log levels are INFO, WARNING and ERROR",
-                        default="INFO")
+    parser.add_argument("-d", "--debug", nargs='?', const="INFO", default="ERROR",
+                        help="Set the logging level (DEBUG, INFO, WARNING, ERROR)")
 
     parser.add_argument("-f", "--filter",
                         help="filter log messages by file, add files you want to filter", nargs="+")
+    parser.add_argument('--version', action='version',version='TLExport v{version}'.format(version=__version__))
 
     return parser.parse_args()
 
@@ -71,15 +75,18 @@ def run():
 
     set_logger(args)
 
-    logging.info(f"Arguments: {args}")
+    logging.debug(f"Arguments: {args}")
     logging.info(f"Mapping Ports: {portmap}")
 
     server_ports.extend([int(x) for x in args.serverports])
-    logging.info(f"Checking for TLS Traffic on these ports: {server_ports}")
+    
 
 
     if args.sslkeylog is not None:
+        print(f"[*] Using keys from SSLKEYLOG: {args.sslkeylog}")
         keylog.extend(keylog_reader.read_keylog_from_file(args.sslkeylog))
+    else:
+        print("[*] Using keys from DSB")
 
     file = open(args.infile, "rb")
 
@@ -87,6 +94,10 @@ def run():
         pcap_reader = dpkt.pcap.Reader(file)
     else:
         pcap_reader = Reader(file)
+
+    
+    print(f"[*] Checking for TLS Traffic on these ports: {server_ports}")
+
     for ts, buf in pcap_reader:
         packet = Packet(buf, ts)
 
@@ -122,6 +133,8 @@ def run():
         writer.writepkt(bytes(buf), ts)
 
     file.close()
+    print(f"[*] written decrypted PCAP to {args.outfile}")
+    print("[*] Thx for using TLExport. Have a nice day!")
 
 
 if __name__ == "__main__":

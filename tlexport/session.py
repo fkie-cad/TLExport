@@ -1,4 +1,5 @@
 import logging
+import warnings
 
 from tlexport.packet import Packet
 from tlexport.tlsrecord import TlsRecord
@@ -9,8 +10,12 @@ from tlexport.decryptor import Decryptor
 from tlexport.output_builder import OutputBuilder
 
 from ipaddress import IPv6Address, IPv4Address
-from cryptography.hazmat.primitives.ciphers.algorithms import AES, TripleDES, IDEA, Camellia
-from cryptography.hazmat.primitives.ciphers.aead import AESCCM, AESGCM
+
+# Suppress the deprecation warning from the cryptography module.
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    from cryptography.hazmat.primitives.ciphers.algorithms import AES, TripleDES, IDEA, Camellia
+    from cryptography.hazmat.primitives.ciphers.aead import AESCCM, AESGCM
 
 
 class Session:
@@ -213,6 +218,7 @@ class Session:
             self.packet_buffer.append(packet)
 
     def decrypt(self):
+        print(f"[*] Decrypting session: [{self.binary_to_ip(self.server_ip)}:{self.server_port}-{self.binary_to_ip(self.client_ip)}:{self.client_port}]\n")
         logging.info(f"\n---------------------------------------------------------------------\n"
                      f"Decrypting session:\n"
                      f"Server IP: {self.binary_to_ip(self.server_ip)}\n"

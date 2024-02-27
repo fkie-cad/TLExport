@@ -1,3 +1,6 @@
+import logging
+# suppress scapy warning message when importing the module
+logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 from scapy.packet import Raw
 from scapy.layers.l2 import Ether
 from scapy.layers.inet import IP, TCP

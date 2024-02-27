@@ -2,6 +2,7 @@
 
 
 # TLExport
+
 TLExport (TLE) is a tool for decrypting TLS-Traffic and exporting the 
 traffic into unencrypted TCP/UDP traffic. The goal is to provide support to network analysis tools, 
 which have no or limited support for TLS decryption.
@@ -10,9 +11,14 @@ This project is inspired by [Wiresharks] built in TLS Decryption, which does not
 of decrypted traffic into pcap files.
 
 ## Installation
-Clone the GitHub project and execute the main.py file of the src module
+
+Installation is simply a matter of `pip3 install tlexport`. This will give you the `tlexport` command. You can update an existing `tlexport` installation with `pip3 install --upgrade tlexport`.
+
+Alternatively just clone the repository and execute the `main.py` file of the src module.
+
 
 ## Usage
+
 TLE requires sslkeylogs to decrypt the traffic.
 They can be passed in a keylogfile:<br>
 ```python3 main.py -i in.pcapng -o out.pcapng -s sslkeylog.log```
@@ -34,6 +40,7 @@ The program also supports old pcap files:<br>
 ```$ python3 main.py -i in.pcapng -o out.pcapng -l -s sslkeylog.log```
 
 ## Dependencies
+
 A Python Version of 3.10 or above is required [4]
 
 Install the python packages:
@@ -44,6 +51,9 @@ Install the python packages:
 ```pip install cryptography dpkt scapy```
 
 ## Supported Versions and Algorithms
+
+In the following we list the supported TLS versions as well as the supported algorithms.
+
 ### Versions:
 - Secure Socket Layer 3.0
 - Transport Layer Security 1.0-1.3

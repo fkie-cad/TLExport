@@ -1,16 +1,19 @@
 import logging
 import zlib
-
+import warnings
 from tlexport.tlsversion import TlsVersion
 from tlexport.tlsrecord import TlsRecord
 
 from enum import Enum
-from cryptography.hazmat.primitives.ciphers import Cipher
-from cryptography.hazmat.primitives.ciphers.algorithms import AES, TripleDES, Camellia, IDEA
-from cryptography.hazmat.primitives.ciphers.aead import AESCCM, AESGCM, ChaCha20Poly1305
-from cryptography.hazmat.primitives.ciphers.algorithms import ChaCha20
-from cryptography.hazmat.primitives.ciphers.algorithms import ARC4
-from cryptography.hazmat.primitives.ciphers.modes import CBC
+# Suppress the deprecation warning from the cryptography module.
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    from cryptography.hazmat.primitives.ciphers import Cipher
+    from cryptography.hazmat.primitives.ciphers.algorithms import AES, TripleDES, Camellia, IDEA
+    from cryptography.hazmat.primitives.ciphers.aead import AESCCM, AESGCM, ChaCha20Poly1305
+    from cryptography.hazmat.primitives.ciphers.algorithms import ChaCha20
+    from cryptography.hazmat.primitives.ciphers.algorithms import ARC4
+    from cryptography.hazmat.primitives.ciphers.modes import CBC
 
 
 class EncryptionType(Enum):
