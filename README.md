@@ -2,7 +2,7 @@
 
 
 # TLExport
-
+![version](https://img.shields.io/badge/version-0.4-blue) [![PyPi](https://badge.fury.io/py/objection.svg)](https://pypi.org/project/tlexport)
 TLExport (TLE) is a tool for decrypting TLS-Traffic and exporting the 
 traffic into unencrypted TCP/UDP traffic. The goal is to provide support to network analysis tools, 
 which have no or limited support for TLS decryption.
@@ -21,23 +21,23 @@ Alternatively just clone the repository and execute the `main.py` file of the sr
 
 TLE requires sslkeylogs to decrypt the traffic.
 They can be passed in a keylogfile:<br>
-```python3 main.py -i in.pcapng -o out.pcapng -s sslkeylog.log```
+```tlexport -i in.pcapng -o out.pcapng -s sslkeylog.log```
 
 or within the pcap file as a decryption secret block:<br>
-```$ python3 main.py -i in.pcapng -o out.pcapng```
+```$ tlexport -i in.pcapng -o out.pcapng```
 
 You can specify the ports on which TLS-Traffic is to be decrypted (default: 443):<br>
-```$ python3 main.py -i in.pcapng -o out.pcapng -p 443 -p 8443```
+```$ tlexport -i in.pcapng -o out.pcapng -p 443 -p 8443```
 
 and which ports to map the TLS-Traffic to (default 443:8080):<br>
-```$ python3 main.py -i in.pcapng -o out.pcapng -p 443 -p 8443 -m 443:8080 -m 8443:8090```
+```$ tlexport -i in.pcapng -o out.pcapng -p 443 -p 8443 -m 443:8080 -m 8443:8090```
 
 Ensuring, that only packets with correct checksums are decrypted<br> 
 (Warning: Often the checksums are incorrect on linux due to checksum offload)<br>
-```$ python3 main.py -i in.pcapng -o out.pcapng -c```
+```$ tlexport -i in.pcapng -o out.pcapng -c```
 
 The program also supports old pcap files:<br>
-```$ python3 main.py -i in.pcapng -o out.pcapng -l -s sslkeylog.log```
+```$ tlexport -i in.pcapng -o out.pcapng -l -s sslkeylog.log```
 
 ## Dependencies
 
