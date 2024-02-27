@@ -2,7 +2,8 @@
 
 
 # TLExport
-![version](https://img.shields.io/badge/version-0.4-blue) [![PyPi](https://badge.fury.io/py/objection.svg)](https://pypi.org/project/tlexport)
+![version](https://img.shields.io/badge/version-0.4-blue) [![PyPi](https://badge.fury.io/py/TLExport.svg)](https://pypi.org/project/tlexport)
+
 TLExport (TLE) is a tool for decrypting TLS-Traffic and exporting the 
 traffic into unencrypted TCP/UDP traffic. The goal is to provide support to network analysis tools, 
 which have no or limited support for TLS decryption.
