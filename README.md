@@ -1,4 +1,6 @@
-![logo.svg](logo.svg)
+<p align="center">
+    <img src="https://raw.githubusercontent.com/fkie-cad/TLExport/main/logo.svg" alt="TLExport logo" width="75%" height="75%"/>
+</p>
 
 
 # TLExport
