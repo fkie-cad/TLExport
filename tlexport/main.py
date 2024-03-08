@@ -17,6 +17,16 @@ server_ports = [443]
 keylog = []
 sessions = []
 
+class MapPortsAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        keep_original_ports = False  # If -m is used, we don't keep original ports
+        if values:
+            setattr(namespace, self.dest, values)
+        else:
+            # -m used without parameters, use default value
+            setattr(namespace, self.dest, ["443:8080"])
+        setattr(namespace, 'keep_original_ports', keep_original_ports)
+
 
 def arg_parser_init():
     parser = argparse.ArgumentParser(description="TLExport - GENERATING DECRYPTED TLS PCAPS")
@@ -32,10 +42,11 @@ def arg_parser_init():
     parser.add_argument("-l", "--pcaplegacy", help="enable flag if infile is in the pcap format",
                         action=argparse.BooleanOptionalAction)
     parser.add_argument("-m", "--mapports",
-                        help="map TLS-Ports to specific output ports, use this option when using more than one "
-                             "serverport <serverport:outputport>",
-                        nargs="+",
-                        default=["443:8080"])
+                    action=MapPortsAction,
+                    nargs='*',
+                    default=argparse.SUPPRESS,  # Avoid setting mapports if not used
+                    help="map TLS-Ports to specific output ports, use this option when using more than one "
+                         "serverport <serverport:outputport>")
     parser.add_argument("-d", "--debug", nargs='?', const="INFO", default="ERROR",
                         help="Set the logging level (DEBUG, INFO, WARNING, ERROR)")
 
@@ -43,13 +54,20 @@ def arg_parser_init():
                         help="filter log messages by file, add files you want to filter", nargs="+")
     parser.add_argument('--version', action='version',version='TLExport v{version}'.format(version=__version__))
 
+    parser.set_defaults(keep_original_ports=True)
+
     return parser.parse_args()
 
 
 def get_port_map(parser):
     port_map = {}
     i: str
+
+    if 'mapports' not in parser or parser.mapports is None:
+        return port_map
+
     for i in parser.mapports:
+        i = i.replace(",", "") # if somebody is using a "," as seperator
         split = i.split(":")
         server_port = int(split[0])
         output_port = int(split[1])
@@ -58,19 +76,20 @@ def get_port_map(parser):
     return port_map
 
 
-def handle_packet(packet: Packet, args, keylog, sessions: list[Session], portmap):
+def handle_packet(packet: Packet, args, keylog, sessions: list[Session], portmap, keep_original_ports: bool):
     for session in sessions:
         if session.matches_session(packet):
             session.handle_packet(packet)
             return
 
     if packet.dport in server_ports or packet.sport in server_ports:
-        sessions.append(Session(packet, server_ports, keylog, portmap))
+        sessions.append(Session(packet, server_ports, keylog, portmap, keep_original_ports))
 
 
 def run():
 
     args = arg_parser_init()
+    keep_original_ports = args.keep_original_ports
     portmap = get_port_map(args)
 
     set_logger(args)
@@ -96,7 +115,7 @@ def run():
         pcap_reader = Reader(file)
 
     
-    print(f"[*] Checking for TLS Traffic on these ports: {server_ports}")
+    print(f"[*] Checking for TLS traffic on these ports: {server_ports}")
 
     for ts, buf in pcap_reader:
         packet = Packet(buf, ts)
@@ -118,7 +137,7 @@ def run():
             logging.info(f"bad checksum discarded Packet {packet.get_params()}")
             logging.info("")
         if packet.tls_packet and checksum_test:
-            handle_packet(packet, args, keylog, sessions, portmap)
+            handle_packet(packet, args, keylog, sessions, portmap, keep_original_ports)
 
     file.close()
     all_decrypted_sessions = []

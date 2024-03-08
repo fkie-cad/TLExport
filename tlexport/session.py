@@ -19,7 +19,7 @@ with warnings.catch_warnings():
 
 
 class Session:
-    def __init__(self, packet: Packet, server_ports, keylog, portmap) -> None:
+    def __init__(self, packet: Packet, server_ports, keylog, portmap, keep_original_ports: bool) -> None:
         self.start_packet = packet
         self.keylog = keylog
 
@@ -51,6 +51,8 @@ class Session:
         self.application_traffic = []
 
         self.portmap = portmap
+        
+        self.keep_original_ports = keep_original_ports  
 
     # search SSLKEYLOG for session log data
     def find_session_secrets(self):
@@ -228,7 +230,7 @@ class Session:
                      f"\n---------------------------------------------------------------------\n")
         self.get_tls_records()
         self.builder = OutputBuilder(self.application_traffic, self.server_ip, self.client_ip, self.server_port,
-                                     self.client_port, self.server_mac_addr, self.client_mac_addr, self.portmap)
+                                     self.client_port, self.server_mac_addr, self.client_mac_addr, self.portmap, self.keep_original_ports)
         return self.builder.build()
 
     def handle_tls_handshake_record(self, record: TlsRecord, isserver):
