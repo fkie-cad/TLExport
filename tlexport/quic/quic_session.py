@@ -1,5 +1,5 @@
 import logging
-from typing import Type, cast
+from typing import Type, cast, Dict
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM, ChaCha20Poly1305, AESCCM
 from cryptography.hazmat.primitives.hashes import SHA256, SHA384
@@ -12,8 +12,10 @@ from tlexport.quic.quic_frame import CryptoFrame, StreamFrame, NewConnectionIdFr
 from tlexport.quic.quic_key_generation import dev_quic_keys, dev_initial_keys, key_update
 from tlexport.quic.quic_packet import QuicPacket, ShortQuicPacket, LongQuicPacket, QuicPacketType
 from tlexport.quic.quic_tls_parser import QuicTlsSession
-from tlexport.quic.quic_dissector import get_quic_header_data
+from tlexport.quic.quic_dissector import extract_quic_packet
 from tlexport.quic.quic_decode import QuicVersion
+from tlexport.quic.udp_output_builder import UdpOutputBuilder
+from tlexport.quic.quic_output_builder import QUICOutputbuilder
 
 PACKET_TYPE_MAP = {
     QuicPacketType.INITIAL: (QuicPacketType.INITIAL,),
@@ -72,6 +74,7 @@ class QuicSession:
         self.buffer_spaces_client = None
 
         self.set_packet_number_spaces()
+        self.portmap = portmap
 
     # reset Quic Session Parameters, except output buffer and Socket Addresses
     def reset(self):
@@ -117,8 +120,12 @@ class QuicSession:
 
         self.set_packet_number_spaces()
 
-    def decrypt(self):
-        pass
+    def build_output(self):
+        if len(self.output_buffer) > 0:
+            output_builder = QUICOutputbuilder(self.output_buffer, self.server_ip, self.client_ip, self.server_port, self.client_port, self.server_mac_addr, self.client_mac_addr, self.portmap)
+            return output_builder.build()
+        else:
+            return [(b"\x00", 0)]
 
     def set_packet_number_spaces(self):
         # RTT_1 and RTT_0 are in same packet_number space 12.3
@@ -209,11 +216,10 @@ class QuicSession:
 
                     case QuicPacketType.HANDSHAKE:
                         associated_data = quic_packet.first_byte + quic_packet.version + quic_packet.dcid_len + quic_packet.dcid + quic_packet.scid_len + quic_packet.scid + quic_packet.packet_len_bytes + quic_packet.packet_num #TODO: Check conversion
-
             else:
                 associated_data = quic_packet.first_byte + quic_packet.dcid + quic_packet.packet_num
-            print(associated_data.hex())
             payload = decryptor.decrypt(quic_packet.payload, packet_number, associated_data, quic_packet.isserver)
+            print(associated_data.hex())
 
             frames = parse_frames(payload, quic_packet)
 
@@ -235,6 +241,9 @@ class QuicSession:
             return True
 
     def handle_packet(self, packet: Packet, dcid: bytes, quic_version: QuicVersion):
+        """This method handles the packets, extracts the contained QUIC-Packet(s) and
+        prepares the decryption for the initial QUIC-Packets
+        """
         if self.quic_version == QuicVersion.UNKNOWN:
             self.quic_version = quic_version
 
@@ -243,15 +252,14 @@ class QuicSession:
 
         isserver = self.packet_isserver(packet, dcid)
 
-        # TODO extract QUIC-Packets
         while len(packet.tls_data) != 0:
-            quic_packets, packet = get_quic_header_data(in_packet=packet, isserver=isserver, guessed_dcid=dcid, keys=self.keys, ciphersuite=self.tls_session.ciphersuite)
+            quic_packets, packet = extract_quic_packet(in_packet=packet, isserver=isserver, guessed_dcid=dcid, keys=self.keys, ciphersuite=self.tls_session.ciphersuite)
 
             self.packet_buffer_quic.extend(quic_packets)
 
-            self.handle_packets()
+            self.handle_quic_packet()
 
-    def handle_packets(self):
+    def handle_quic_packet(self):
         for quic_packet in self.packet_buffer_quic:
             if quic_packet.packet_type not in [QuicPacketType.RETRY, QuicPacketType.VERSION_NEG]:
                 self.decrypt_packet(quic_packet)

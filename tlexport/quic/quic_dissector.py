@@ -62,7 +62,7 @@ def remove_header_protection(header_type, sample, first_packet_byte, hp_key, dat
     return first_packet_byte, packet_number_field, pn_len
 
 
-def get_quic_header_data(in_packet: Packet, isserver, guessed_dcid: bytes = None, keys: {} = None, ciphersuite: bytes = None):
+def extract_quic_packet(in_packet: Packet, isserver, guessed_dcid: bytes = None, keys: {} = None, ciphersuite: bytes = None):
     packet_buf = []
 
     datagram_data = in_packet.tls_data
@@ -153,7 +153,7 @@ def get_quic_header_data(in_packet: Packet, isserver, guessed_dcid: bytes = None
                                                 dcid_len=dcid_len, dcid=dcid, scid_len=scid_len, scid=scid,
                                                 token_len=token_len, token_len_bytes=token_len_bytes, token=token,
                                                 packet_len=packet_len, packet_len_bytes=packet_len_bytes, packet_num=decrypted_header[1],
-                                                payload=payload, isserver=isserver, first_byte=decrypted_header[0])
+                                                payload=payload, isserver=isserver, first_byte=decrypted_header[0], ts=in_packet.timestamp)
 
                         packet_buf.append(packet)
 
@@ -197,7 +197,7 @@ def get_quic_header_data(in_packet: Packet, isserver, guessed_dcid: bytes = None
                                                 dcid_len=dcid_len, dcid=dcid, scid_len=scid_len, scid=scid,
                                                 packet_len=packet_len, packet_num=decrypted_header[1],
                                                 payload=payload, isserver=isserver, first_byte=decrypted_header[0],
-                                                packet_len_bytes=packet_len_bytes)
+                                                packet_len_bytes=packet_len_bytes, ts=in_packet.timestamp)
 
                         packet_buf.append(packet)
 
@@ -241,7 +241,8 @@ def get_quic_header_data(in_packet: Packet, isserver, guessed_dcid: bytes = None
                                          packet_num=decrypted_header[1],
                                          key_phase=key_phase,
                                          payload=payload,
-                                         first_byte=decrypted_header[0])
+                                         first_byte=decrypted_header[0],
+                                         ts=in_packet.timestamp)
 
                 packet_buf.append(packet)
             case _:

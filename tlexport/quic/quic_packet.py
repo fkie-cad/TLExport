@@ -20,21 +20,22 @@ class QuicHeaderType(Enum):
 
 
 class QuicPacket:
-    def __init__(self, header_type: QuicHeaderType, packet_type: QuicPacketType, isserver: bool, first_byte: bytes):
+    def __init__(self, header_type: QuicHeaderType, packet_type: QuicPacketType, isserver: bool, first_byte: bytes, ts: int):
         self.header_type = header_type
         self.packet_type = packet_type
         self.isserver = isserver
         self.first_byte = first_byte
+        self.ts = ts
 
 
 class LongQuicPacket(QuicPacket):
     def __init__(self, packet_type: QuicPacketType, version: bytes, dcid_len: bytes, dcid: bytes, scid_len: bytes,
-                 scid: bytes, first_byte: bytes,
+                 scid: bytes, first_byte: bytes, ts: int,
                  packet_len: bytes = None, packet_len_bytes: bytes = None, packet_num: bytes = None, payload: bytes = None, token_len: int = None,
                  token_len_bytes: bytes = None, token: bytes = None,
                  retry_token: bytes = None, retry_integ_tag: bytes = None, isserver: bool = False):
 
-        super().__init__(QuicHeaderType.LONG, packet_type, isserver, first_byte)
+        super().__init__(QuicHeaderType.LONG, packet_type, isserver, first_byte, ts)
         self.version = version
         self.dcid_len = dcid_len
         self.dcid = dcid
@@ -66,8 +67,8 @@ class ShortQuicPacket(QuicPacket):
 
     # init for 1-RTT Packet
     def __init__(self, packet_type: QuicPacketType, key_phase: int, dcid: bytes, packet_num: int, payload: bytes,
-                 isserver: bool, first_byte: bytes):
-        super().__init__(QuicHeaderType.SHORT, packet_type, isserver, first_byte)
+                 isserver: bool, first_byte: bytes, ts: int):
+        super().__init__(QuicHeaderType.SHORT, packet_type, isserver, first_byte, ts)
         self.key_phase = key_phase
         self.dcid = dcid
         self.packet_num = packet_num

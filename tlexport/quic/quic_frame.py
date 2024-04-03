@@ -31,7 +31,7 @@ class Frame:
     length = None
 
     def __init__(self, src_packet: ShortQuicPacket | LongQuicPacket | QuicPacket):
-        self.src_packet = src_packet
+        self.src_packet: ShortQuicPacket | LongQuicPacket | QuicPacket = src_packet
 
 
 class PaddingFrame(Frame):

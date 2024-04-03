@@ -21,11 +21,16 @@ quic_sessions = []
 
 
 def arg_parser_init():
+    """Parses given arguments
+
+        :return: Namespace from *argparse* module
+        :rtype: argparse.Namespace
+    """
     parser = argparse.ArgumentParser(description="Adding Decryption Secret Block Support to Zeek")
     parser.add_argument("-p", "--serverports", help="additional ports to test for TLS-Connections", nargs="+",
                         default=[443])
     parser.add_argument("-i", "--infile", help="path of input file",
-                        default="tlexport/pcaps_und_keylogs/quic_pcaps/chacha_20.pcapng")
+                        default="tlexport/pcaps_und_keylogs/quic_pcaps/aes_gcm_128.pcapng")
     parser.add_argument("-o", "--outfile", help="path of output file", default="out.pcapng")
     parser.add_argument("-s", "--sslkeylog", help="path to sslkeylogfile",
                         default="tlexport/pcaps_und_keylogs/quic_pcaps/all_ciphersuites.log")
@@ -51,8 +56,16 @@ def arg_parser_init():
     return parser.parse_args()
 
 
-def get_port_map(parser):
-    port_map = {}
+def get_port_map(parser: argparse.Namespace):
+    """Gets ports from given arguments
+
+        :param parser: Namespace from *argparse* module
+        :type parser: argparse.Namespace
+
+        :return: directory containing how server ports are mapped to the output ports
+        :rtype: dict
+    """
+    port_map: dict = {}
     i: str
     for i in parser.mapports:
         split = i.split(":")
@@ -63,17 +76,41 @@ def get_port_map(parser):
     return port_map
 
 
-def handle_packet(packet: Packet, keylog, sessions: list[Session], portmap):
+def handle_packet(packet: Packet, keylog: bytes, sessions: list[Session], portmap: dict):
+    """Matches packet to it's corresponding session, and initiates the handling of that packet in that session. Only used for *TLS over TCP* (NOT for QUIC, DTLS, etc.)
+
+        :param packet: packet that is handled
+        :param keylog: the secrets from the SSLKEYLOGFILE **AND** decryption secret blocks containing the connection secrets
+        :type packet: Packet
+        :type keylog: bytes
+        :param sessions: list of all sessions that are currently handled
+        :type sessions: list[Session]
+        :param portmap: directory containing how server ports are mapped to the output ports
+        :type portmap: dict
+    """
     for session in sessions:
         if session.matches_session(packet):
             session.handle_packet(packet)
             return
 
+    # if no matching session is found, a new one is created
     if packet.dport in server_ports or packet.sport in server_ports:
         sessions.append(Session(packet, server_ports, keylog, portmap))
 
 
 def handle_quic_packet(packet: Packet, keylog, quic_sessions: list[QuicSession], portmap):
+    """Matches packet to a session containg QUIC traffic, and initiates the handling of that packet in that session.
+        Only used QUIC traffic
+
+        :param packet: packet that is handled
+        :type packet: Packet
+        :param keylog: the secrets from the SSLKEYLOGFILE **AND** decryption secret blocks containing the connection secrets
+        :type keylog: bytes
+        :param quic_sessions: list of all quic sessions that are currently handled
+        :type quic_sessions: list[Session]
+        :param portmap: directory containing how server ports are mapped to the output ports
+        :type portmap: dict
+    """
     packet_payload = packet.tls_data
     header_type = get_header_type(packet_payload)
 
@@ -109,6 +146,7 @@ def handle_quic_packet(packet: Packet, keylog, quic_sessions: list[QuicSession],
             session.handle_packet(packet, dcid, quic_version)
             return
 
+    # TODO: Maybe change
     if header_type != QuicHeaderType.SHORT:
         new_session = QuicSession(packet, server_ports, keylog, portmap)
         quic_sessions.append(new_session)
@@ -116,6 +154,7 @@ def handle_quic_packet(packet: Packet, keylog, quic_sessions: list[QuicSession],
 
 
 def run():
+    """Starts the program"""
     args = arg_parser_init()
     portmap = get_port_map(args)
 
@@ -141,7 +180,7 @@ def run():
         packet = Packet(buf, ts)
 
         if ts == -1:
-            keylog.extend(keylog_reader.get_keys_from_string(buf.decode('ascii')))
+            keylog.extend(keylog_reader.get_keys_from_string(buf.decode('ascii')))  # adds secrets from decryption secret block to keylog
             continue
 
         if packet.tcp_packet:
@@ -175,7 +214,7 @@ def run():
                 logging.info("")
                 continue
 
-            # using fixed bit for differentiating between QUIC and D-TLS (Second bit of first Byte is always 1 in QUIC)
+            # using fixed bit for differentiating between QUIC and D-TLS (For further information take a look at RFC 9287)
             if ((int(packet.tls_data[0]) & 0x40) >> 6) == 1 or args.greasy:
                 # QUIC Packet
                 handle_quic_packet(packet, keylog, quic_sessions, portmap)
@@ -190,7 +229,7 @@ def run():
         all_decrypted_sessions.extend(session.decrypt())
 
     for quic_session in quic_sessions:
-        quic_session.decrypt()
+        all_decrypted_sessions.extend(quic_session.build_output())
 
     file = open(args.outfile, "wb")
 

@@ -1,13 +1,18 @@
 import dpkt
 from ipaddress import IPv6Address, IPv4Address
 
-# data class for network packets and metadata
-
 
 class Packet:
-    def __init__(self, packet, timestamp) -> None:
+    """This class serves as a wrapper class for simplifying handling network packets and their metadata."""
+    def __init__(self, binary: bytes, timestamp: float) -> None:
+        """
+            :param binary: packet data in bytes extracted by dpkt
+            :type binary: bytes
+            :param timestamp: timestamp of packet extracted by dpkt
+            :type timestamp: float
+        """
         self.timestamp = timestamp
-        self.binary = packet
+        self.binary = binary
 
         self.ethernet = dpkt.ethernet.Ethernet(self.binary)
 
@@ -50,14 +55,10 @@ class Packet:
             self.sport = self.udp.sport
             self.dport = self.udp.dport
 
-
             self.tls_data = self.udp.data
 
             self.udp_packet = True
             return
-
-
-
 
     def get_params(self):
         if not self.ipv6_packet:

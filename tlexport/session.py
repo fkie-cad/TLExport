@@ -15,7 +15,22 @@ from cryptography.hazmat.primitives.ciphers.aead import AESCCM, AESGCM
 
 
 class Session:
-    def __init__(self, packet: Packet, server_ports, keylog, portmap) -> None:
+    """This class represents the session of a server and a client.
+
+    It handles its packets by parsing them, and initiates the decryption of these packets. However, this class is only used for
+    *TLS over TCP*, which means it **DOES NOT** handle network traffic containing e.g. QUIC or DTLS traffic"""
+    def __init__(self, packet: Packet, server_ports: list[int], keylog: bytes, portmap: dict) -> None:
+        """
+
+            :param packet: first packet of a new session instance (this packet DOES NOT have to be the first packet of the conversation in general)
+            :type packet: Packet
+            :param server_ports: the server ports that have been passed as arguments
+            :type server_ports: list [int]
+            :param keylog: the secrets from the SSLKEYLOGFILE **AND** decryption secret blocks containing the connection secrets
+            :type keylog: bytes
+            :param portmap: directory containing how server ports are mapped to the output ports
+            :type portmap: dict
+        """
         self.keylog = keylog
 
         self.set_client_and_server_ports(packet, server_ports)
@@ -49,6 +64,11 @@ class Session:
 
     # search SSLKEYLOG for session log data
     def find_session_secrets(self):
+        """Searches for the secrets that were used to encrypt the sessions' traffic
+
+            :return: the sessions' secrets
+            :rtype: list[bytes]
+        """
         is_handshake_secret = 0  # Only for TLS 1.3
         secrets = []
         for secret in self.keylog:
@@ -75,6 +95,16 @@ class Session:
 
     # generate session keys from SSLKEYLOG
     def generate_keys(self, tls_version, server_cipher_suite, client_random, server_random):
+        """Generates the keys from the found sessions' secrets and sets up decryptor
+
+            :param tls_version: the TLS-Version used in the session
+            :type tls_version: TlsVersion
+            :param server_cipher_suite: the cipher suite server and client have agreed on
+            :type server_cipher_suite: dict
+            :param client_random: client random from the TLS handshake
+            :type client_random: bytes
+            :param server_random: server random from the TLS handshake
+            :type server_random: bytes"""
         cipher_suite = cipher_suite_parser.split_cipher_suite(bytes(server_cipher_suite))
 
         if cipher_suite is None:
@@ -184,6 +214,11 @@ class Session:
 
     # checks if packet is in session
     def matches_session(self, packet: Packet):
+        """Checks if packet is part of the session or not
+
+            :param packet: the checked packet
+            :type packet: Packet
+            """
         if (packet.ip_src == self.server_ip and packet.sport == self.server_port
                 and packet.ip_dst == self.client_ip and packet.dport == self.client_port):
             return True
@@ -192,8 +227,13 @@ class Session:
             return True
         return False
 
-    # add packet to session, if packet is not a duplicate, splitting into server and client packets
     def handle_packet(self, packet: Packet):
+        """Adds packet to session, if packet is not a duplicate. It splits packets from client and server
+
+           :param packet: the handled packet
+           :type packet: Packet
+
+        """
         sequence = packet.seq
 
         if packet.ip_src == self.server_ip and packet.sport == self.server_port:
@@ -213,6 +253,12 @@ class Session:
             self.packet_buffer.append(packet)
 
     def decrypt(self):
+        """Starts the decryption process and sets up the output builder for writing the decrypted traffic to a new PCAPNG file
+
+            :return: List of decrypted traffic which has been written to a new TCP packet
+            :rtype: list
+
+        """
         logging.info(f"\n---------------------------------------------------------------------\n"
                      f"Decrypting session:\n"
                      f"Server IP: {self.binary_to_ip(self.server_ip)}\n"
@@ -398,8 +444,8 @@ class Session:
         else:
             return IPv4Address(ip_addr)
 
-    # extracts TLS_Records from packet buffers
     def get_tls_records(self):
+        """Extracts packets from session which together contain complete TLS_Records"""
         packet: Packet
         for packet in self.packet_buffer:
             if packet.ip_src == self.server_ip and packet.sport == self.server_port:
@@ -419,8 +465,8 @@ class Session:
 
                 self.client_tls_records.clear()
 
-    # extracts packets from session which together contain complete TLS_Records
     def extract_server_buf(self):
+        """Extracts packets from session which together contain complete TLS_Records"""
         self.server_counter += 1
         self.server_packet_buffer.sort(key=lambda x: x.seq)
 
@@ -472,8 +518,8 @@ class Session:
                 index += record_len
             self.server_packet_buffer.clear()
 
-    # extracts packets from session which together contain complete TLS_Records
     def extract_client_buf(self):
+        """Extracts packets from session which together contain complete TLS_Records"""
         self.client_counter += 1
         self.client_packet_buffer.sort(key=lambda x: x.seq)
 
