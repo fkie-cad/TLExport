@@ -56,7 +56,6 @@ def remove_header_protection(header_type, sample, first_packet_byte, hp_key, dat
 
     pn_len = decode_variable_length_int(
         byte_and(bytes([int.from_bytes(first_packet_byte, "big")]), b"\x03")) + 1
-
     packet_number_field = byte_xor(datagram_data[pn_offset:pn_offset + pn_len], mask[1: pn_len + 1])
 
     return first_packet_byte, packet_number_field, pn_len
@@ -66,9 +65,6 @@ def extract_quic_packet(in_packet: Packet, isserver, guessed_dcid: bytes = None,
     packet_buf = []
 
     datagram_data = in_packet.tls_data
-    #print(datagram_data.hex())
-    #datagram_data = bytes.fromhex("cf000000010008f067a5502a4262b5004075c0d95a482cd0991cd25b0aac406a5816b6394100f37a1c69797554780bb38cc5a99f5ede4cf73c3ec2493a1839b3dbcba3f6ea46c5b7684df3548e7ddeb9c3bf9c73cc3f3bded74b562bfb19fb84022f8ef4cdd93795d77d06edbb7aaf2f58891850abbdca3d20398c276456cbc42158407dd074ee")
-
     try:
 
         header_type = get_header_type(datagram_data)
@@ -84,6 +80,7 @@ def extract_quic_packet(in_packet: Packet, isserver, guessed_dcid: bytes = None,
                 fmt_string = "B4sB"  # First Byte, Version, DCID_Len
                 header_parts = struct.unpack_from(fmt_string, datagram_data)
                 version = header_parts[1]
+
                 dcid_len = header_parts[2]
                 fmt_string = fmt_string + str(dcid_len) + "s"
                 dcid_len = dcid_len.to_bytes(1, "big")
@@ -102,7 +99,17 @@ def extract_quic_packet(in_packet: Packet, isserver, guessed_dcid: bytes = None,
 
                 packet_type = get_packet_type(datagram_data=datagram_data)
 
+                if version == b"\x00\x00\x00\x00":
+                    packet_type = QuicPacketType.VERSION_NEG
+
                 match packet_type:  # checks if packet type
+
+                    case QuicPacketType.VERSION_NEG:
+                        header_parts = struct.unpack_from(fmt_string + "ssss", datagram_data)
+                        packet = LongQuicPacket(packet_type=QuicPacketType.VERSION_NEG, version=version, dcid_len=dcid_len,
+                                              dcid=dcid, scid_len=scid_len, scid=scid, supported_version=header_parts[-1:-5],
+                                              first_byte=header_parts[0], ts=in_packet.timestamp, isserver=isserver)
+                        packet_buf.append(packet)
 
                     case QuicPacketType.INITIAL:  # Initial packet
 

@@ -21,19 +21,29 @@ class QUICOutputbuilder:
         else:
             self.server_port = self.default_port
 
-    def build(self):
+    def build(self, metadata: bool):
         pn = self.decrypted_traffic[0].src_packet.packet_num
         ts = self.decrypted_traffic[0].src_packet.ts
         isserver = self.decrypted_traffic[0].src_packet.isserver
         packets = bytearray()
         for frame in self.decrypted_traffic:
+
+            if frame.frame_type == 0x06 and metadata:
+                data = frame.crypto
+            elif frame.frame_type == 0xfe and metadata:
+                data = frame.supported_version
+            elif frame.frame_type in [0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f]:
+                data = frame.stream_data
+            else:
+                continue
+
             if frame.src_packet.packet_num == pn:
-                packets.extend(frame.stream_data)
+                packets.extend(data)
                 continue
             else:   # if packets number changes
                 if frame.src_packet.ts == ts:   # if same ts => same datagram
                     pn = frame.src_packet.packet_num
-                    packets.extend(frame.stream_data)
+                    packets.extend(data)
                     continue
                 else:   # if not same ts => different datagram
                     if isserver:
@@ -52,7 +62,7 @@ class QUICOutputbuilder:
                     ts = frame.src_packet.ts
                     isserver = self.decrypted_traffic[0].src_packet.isserver
                     packets = bytearray()
-                    packets.extend(frame.stream_data)
+                    packets.extend(data)
 
         if isserver:
             packet = Ether(src=self.server_mac_address, dst=self.client_mac_address) / IP(src=self.server_ip,

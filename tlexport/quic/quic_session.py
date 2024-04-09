@@ -1,5 +1,5 @@
 import logging
-from typing import Type, cast, Dict
+from typing import Type, cast
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM, ChaCha20Poly1305, AESCCM
 from cryptography.hazmat.primitives.hashes import SHA256, SHA384
@@ -8,13 +8,12 @@ from tlexport.keylog_reader import Key
 from tlexport.packet import Packet
 from tlexport.quic.quic_decryptor import QuicDecryptor
 from tlexport.quic.quic_frame import CryptoFrame, StreamFrame, NewConnectionIdFrame, ConnectionCloseFrame, Frame, \
-    parse_frames
+    parse_frames, PseudoVersionNegotiationFrame
 from tlexport.quic.quic_key_generation import dev_quic_keys, dev_initial_keys, key_update
 from tlexport.quic.quic_packet import QuicPacket, ShortQuicPacket, LongQuicPacket, QuicPacketType
 from tlexport.quic.quic_tls_parser import QuicTlsSession
 from tlexport.quic.quic_dissector import extract_quic_packet
 from tlexport.quic.quic_decode import QuicVersion
-from tlexport.quic.udp_output_builder import UdpOutputBuilder
 from tlexport.quic.quic_output_builder import QUICOutputbuilder
 
 PACKET_TYPE_MAP = {
@@ -120,10 +119,10 @@ class QuicSession:
 
         self.set_packet_number_spaces()
 
-    def build_output(self):
+    def build_output(self, metadata: bool):
         if len(self.output_buffer) > 0:
             output_builder = QUICOutputbuilder(self.output_buffer, self.server_ip, self.client_ip, self.server_port, self.client_port, self.server_mac_addr, self.client_mac_addr, self.portmap)
-            return output_builder.build()
+            return output_builder.build(metadata)
         else:
             return [(b"\x00", 0)]
 
@@ -147,6 +146,7 @@ class QuicSession:
             self.alpn = self.tls_session.alpn
             self.greasy_bit = self.tls_session.greasy_bit
             self.tls_session.new_data = False
+        self.output_buffer.append(frame)
 
     def handle_frame(self, frame: Frame):
         isserver = frame.src_packet.isserver
@@ -167,6 +167,9 @@ class QuicSession:
                     self.client_cids.add(frame.connection_id)
             case ConnectionCloseFrame():
                 pass
+
+            case PseudoVersionNegotiationFrame():
+                self.output_buffer.append(frame)
 
     def check_key_epoch(self, key_phase_bit, isserver):
         if isserver:
@@ -263,6 +266,10 @@ class QuicSession:
         for quic_packet in self.packet_buffer_quic:
             if quic_packet.packet_type not in [QuicPacketType.RETRY, QuicPacketType.VERSION_NEG]:
                 self.decrypt_packet(quic_packet)
+
+            if quic_packet.packet_type == QuicPacketType.VERSION_NEG:
+                frame = PseudoVersionNegotiationFrame(payload=quic_packet.supported_version, src_packet=quic_packet)
+                self.handle_frame(frame)
 
             if quic_packet.packet_type == QuicPacketType.RETRY:
                 self.tls_session = QuicTlsSession()

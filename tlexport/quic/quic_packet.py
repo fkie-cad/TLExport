@@ -33,7 +33,7 @@ class LongQuicPacket(QuicPacket):
                  scid: bytes, first_byte: bytes, ts: int,
                  packet_len: bytes = None, packet_len_bytes: bytes = None, packet_num: bytes = None, payload: bytes = None, token_len: int = None,
                  token_len_bytes: bytes = None, token: bytes = None,
-                 retry_token: bytes = None, retry_integ_tag: bytes = None, isserver: bool = False):
+                 retry_token: bytes = None, retry_integ_tag: bytes = None, isserver: bool = False, supported_version: bytes = None):
 
         super().__init__(QuicHeaderType.LONG, packet_type, isserver, first_byte, ts)
         self.version = version
@@ -62,6 +62,9 @@ class LongQuicPacket(QuicPacket):
                 self.retry_token = retry_token
                 self.retry_integ_tag = retry_integ_tag
 
+            case QuicPacketType.VERSION_NEG:
+                self.supported_version = supported_version
+
 
 class ShortQuicPacket(QuicPacket):
 
@@ -73,10 +76,3 @@ class ShortQuicPacket(QuicPacket):
         self.dcid = dcid
         self.packet_num = packet_num
         self.payload = payload
-
-
-class VersionNegotiationPacket(QuicPacket):
-
-    def __init__(self, supported_version: int):
-        super().__init__(QuicHeaderType.VERSION_NEG, QuicPacketType.VERSION_NEG)
-        self.supported_version = supported_version

@@ -52,6 +52,7 @@ def arg_parser_init():
                         help="filter log messages by file, add files you want to filter", nargs="+")
     parser.add_argument("-g", "--greasy", help="ignore dtls, due to changes in the QUIC fixed bit, RFC 9287",
                         action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("-a", "--metadata", help="if set to 'True' metadata (e.g. TLS-Handshake data) should be exported", default=False)
 
     return parser.parse_args()
 
@@ -146,7 +147,6 @@ def handle_quic_packet(packet: Packet, keylog, quic_sessions: list[QuicSession],
             session.handle_packet(packet, dcid, quic_version)
             return
 
-    # TODO: Maybe change
     if header_type != QuicHeaderType.SHORT:
         new_session = QuicSession(packet, server_ports, keylog, portmap)
         quic_sessions.append(new_session)
@@ -227,9 +227,9 @@ def run():
     all_decrypted_sessions = []
     for session in sessions:
         all_decrypted_sessions.extend(session.decrypt())
-
+    metadata: bool = args.metadata
     for quic_session in quic_sessions:
-        all_decrypted_sessions.extend(quic_session.build_output())
+        all_decrypted_sessions.extend(quic_session.build_output(metadata))
 
     file = open(args.outfile, "wb")
 

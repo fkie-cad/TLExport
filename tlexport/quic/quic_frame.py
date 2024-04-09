@@ -3,7 +3,6 @@ from tlexport.quic.quic_packet import QuicPacket, ShortQuicPacket, LongQuicPacke
 
 
 def parse_frames(payload: bytes, src_packet: ShortQuicPacket | LongQuicPacket | QuicPacket):
-    #payload = payload # TODO: Changed from bytearray to bytes
 
     frames = []
     keys = frame_type.keys()
@@ -385,6 +384,14 @@ class HandshakeDoneFrame(Frame):
 
     def __init__(self, _payload, src_packet):
         super().__init__(src_packet)
+
+
+class PseudoVersionNegotiationFrame(Frame): # This is not an official Frametype proposed in the RFCs!
+    frame_type = 0xfe
+
+    def __init__(self, payload, src_packet):
+        super().__init__(src_packet)
+        self.payload = payload
 
 
 frame_type = {
