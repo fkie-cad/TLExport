@@ -1,11 +1,9 @@
 import struct
 
 from tlexport.packet import Packet
-from tlexport.quic.quic_decode import decode_variable_length_int, get_variable_length_int_length, QuicVersion
-from tlexport.quic.quic_key_generation import dev_quic_keys, make_hp_mask, dev_initial_keys, make_chacha_hp_mask
-from tlexport.quic.quic_packet import QuicPacketType, QuicHeaderType
+from tlexport.quic.quic_decode import decode_variable_length_int, get_variable_length_int_length
+from tlexport.quic.quic_key_generation import make_hp_mask, make_chacha_hp_mask
 from tlexport.quic.quic_packet import LongQuicPacket, ShortQuicPacket, QuicPacketType, QuicHeaderType
-from enum import Enum
 
 
 def byte_xor(byte1, byte2):

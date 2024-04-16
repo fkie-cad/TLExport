@@ -1,5 +1,4 @@
 from enum import Enum
-from tlexport.quic.quic_decode import QuicVersion
 
 
 class QuicPacketType(Enum):
