@@ -19,7 +19,7 @@ class Session:
 
     It handles its packets by parsing them, and initiates the decryption of these packets. However, this class is only used for
     *TLS over TCP*, which means it **DOES NOT** handle network traffic containing e.g. QUIC or DTLS traffic"""
-    def __init__(self, packet: Packet, server_ports: list[int], keylog: bytes, portmap: dict) -> None:
+    def __init__(self, packet: Packet, server_ports: list[int], keylog: bytes, portmap: dict, exp_meta: bool) -> None:
         """
 
             :param packet: first packet of a new session instance (this packet DOES NOT have to be the first packet of the conversation in general)
@@ -31,6 +31,8 @@ class Session:
             :param portmap: directory containing how server ports are mapped to the output ports
             :type portmap: dict
         """
+        self.exp_meta = exp_meta
+
         self.keylog = keylog
 
         self.set_client_and_server_ports(packet, server_ports)
@@ -406,7 +408,10 @@ class Session:
             # Handshake Record
             case 0x16:
                 self.handle_tls_handshake_record(record, isserver)
-                self.application_traffic.append(None)
+                if self.exp_meta:
+                    self.application_traffic.append((record.raw, record, isserver))
+                else:
+                    self.application_traffic.append(None)
 
             case 0x17:
                 if self.decryptor is None:

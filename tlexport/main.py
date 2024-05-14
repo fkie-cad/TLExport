@@ -52,7 +52,7 @@ def arg_parser_init():
                         help="filter log messages by file, add files you want to filter", nargs="+")
     parser.add_argument("-g", "--greasy", help="ignore dtls, due to changes in the QUIC fixed bit, RFC 9287",
                         action=argparse.BooleanOptionalAction, default=False)
-    parser.add_argument("-a", "--metadata", help="if set to 'True' metadata (e.g. TLS-Handshake data) should be exported", default=False)
+    parser.add_argument("-a", "--metadata", help="export metadata (e.g. TLS-Handshake data), this could be useful for some packet analyzers like Wireshark or Zeek", action=argparse.BooleanOptionalAction, default=False)
 
     return parser.parse_args()
 
@@ -77,7 +77,7 @@ def get_port_map(parser: argparse.Namespace):
     return port_map
 
 
-def handle_packet(packet: Packet, keylog: bytes, sessions: list[Session], portmap: dict):
+def handle_packet(packet: Packet, keylog: bytes, sessions: list[Session], portmap: dict, exp_meta: bool):
     """Matches packet to it's corresponding session, and initiates the handling of that packet in that session. Only used for *TLS over TCP* (NOT for QUIC, DTLS, etc.)
 
         :param packet: packet that is handled
@@ -96,7 +96,7 @@ def handle_packet(packet: Packet, keylog: bytes, sessions: list[Session], portma
 
     # if no matching session is found, a new one is created
     if packet.dport in server_ports or packet.sport in server_ports:
-        sessions.append(Session(packet, server_ports, keylog, portmap))
+        sessions.append(Session(packet, server_ports, keylog, portmap, exp_meta))
 
 
 def handle_quic_packet(packet: Packet, keylog, quic_sessions: list[QuicSession], portmap):
@@ -166,6 +166,8 @@ def run():
     server_ports.extend([int(x) for x in args.serverports])
     logging.info(f"Checking for TLS Traffic on these ports: {server_ports}")
 
+    metadata: bool = args.metadata
+
     if args.sslkeylog is not None:
         keylog.extend(keylog_reader.read_keylog_from_file(args.sslkeylog))
 
@@ -197,7 +199,7 @@ def run():
                 logging.info(f"bad checksum discarded Packet {packet.get_params()}")
                 logging.info("")
             if packet.tcp_packet and checksum_test:
-                handle_packet(packet, keylog, sessions, portmap)
+                handle_packet(packet, keylog, sessions, portmap, exp_meta=metadata)
 
         elif packet.udp_packet:
             if len(packet.tls_data) == 0:
@@ -227,13 +229,12 @@ def run():
     all_decrypted_sessions = []
     for session in sessions:
         all_decrypted_sessions.extend(session.decrypt())
-    metadata: bool = args.metadata
     for quic_session in quic_sessions:
         all_decrypted_sessions.extend(quic_session.build_output(metadata))
 
     file = open(args.outfile, "wb")
 
-    writer = dpkt.pcapng.Writer(file)
+    writer = dpkt.pcapng.Writer(file, snaplen=20000)
 
     for buf, ts in all_decrypted_sessions:
         writer.writepkt(bytes(buf), ts)
