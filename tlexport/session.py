@@ -1,5 +1,4 @@
 import logging
-
 from tlexport.packet import Packet
 from tlexport.tlsrecord import TlsRecord
 from tlexport.tlsversion import TlsVersion
@@ -7,7 +6,6 @@ import tlexport.key_derivator as key_derivator
 import tlexport.cipher_suite_parser as cipher_suite_parser
 from tlexport.decryptor import Decryptor
 from tlexport.output_builder import OutputBuilder
-from tlexport.quic import quic_dissector
 
 from ipaddress import IPv6Address, IPv4Address
 from cryptography.hazmat.primitives.ciphers.algorithms import AES, TripleDES, IDEA, Camellia
@@ -304,6 +302,9 @@ class Session:
         if self.client_cipher_change and not isserver and self.can_decrypt:
             _plaintext = self.decryptor.decrypt(record, isserver)
 
+        if self.exp_meta and _plaintext != b"":
+            self.application_traffic.append((_plaintext, record, isserver))
+
     def handle_tls_client_hello(self, record: TlsRecord):
         self.can_decrypt = False
         self.server_cipher_change = False
@@ -366,7 +367,7 @@ class Session:
         self.can_decrypt = False
         self.client_hello_seen = False
 
-    def handle_decrypted_handshake_record(self, plaintext, isserver):
+    def handle_decrypted_tls_13_handshake_record(self, plaintext, isserver):
         index = 0
         while index < len(plaintext):
             handshake_type = plaintext[index]
@@ -382,7 +383,7 @@ class Session:
             plaintext = self.decryptor.decrypt(record, isserver)
             subrecord_type = plaintext[-1:]
             if subrecord_type == b'\x16':
-                self.handle_decrypted_handshake_record(plaintext[:-1], isserver)
+                self.handle_decrypted_tls_13_handshake_record(plaintext[:-1], isserver)
                 return
             if subrecord_type == b'\x17':
                 self.application_traffic.append((plaintext[:-1], record, isserver))
@@ -394,10 +395,9 @@ class Session:
     def handle_tls_application_record(self, record: TlsRecord, isserver):
         try:
             plaintext = self.decryptor.decrypt(record, isserver)
-
-            self.application_traffic.append((plaintext, record, isserver))
         except Exception as e:
             logging.warning(f"Could not decrypt Record: TLS Application Record")
+        self.application_traffic.append((plaintext, record, isserver))
 
     # consumes and handles a TLS_Record
     def handle_tls_record(self, record: TlsRecord, isserver):
@@ -410,8 +410,6 @@ class Session:
                 self.handle_tls_handshake_record(record, isserver)
                 if self.exp_meta:
                     self.application_traffic.append((record.raw, record, isserver))
-                else:
-                    self.application_traffic.append(None)
 
             case 0x17:
                 if self.decryptor is None:
@@ -435,13 +433,17 @@ class Session:
             # Alert Record
             case 0x15:
                 self.handle_alert(record.binary[0])
-                self.application_traffic.append(None)
+                if self.exp_meta:
+                    self.application_traffic.append((record.raw, record, isserver))
 
             case 0x14:
                 if isserver:
                     self.server_cipher_change = True
                 else:
                     self.client_cipher_change = True
+
+                if self.exp_meta:
+                    self.application_traffic.append((record.raw, record, isserver))
 
     def binary_to_ip(self, ip_addr):
         if self.ipv6:
