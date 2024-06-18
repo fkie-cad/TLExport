@@ -15,6 +15,8 @@ from tlexport.quic.quic_tls_parser import QuicTlsSession
 from tlexport.quic.quic_dissector import extract_quic_packet
 from tlexport.quic.quic_decode import QuicVersion
 from tlexport.quic.quic_output_builder import QUICOutputbuilder
+from ipaddress import IPv6Address, IPv4Address
+
 
 PACKET_TYPE_MAP = {
     QuicPacketType.INITIAL: (QuicPacketType.INITIAL,),
@@ -121,7 +123,7 @@ class QuicSession:
 
     def build_output(self, metadata: bool):
         if len(self.output_buffer) > 0:
-            output_builder = QUICOutputbuilder(self.output_buffer, self.server_ip, self.client_ip, self.server_port, self.client_port, self.server_mac_addr, self.client_mac_addr, self.portmap)
+            output_builder = QUICOutputbuilder(self.output_buffer, self.binary_to_ip(self.server_ip).__str__(), self.binary_to_ip(self.client_ip).__str__(), self.server_port, self.client_port, self.server_mac_addr, self.client_mac_addr, self.portmap, self.ipv6)
             return output_builder.build(metadata)
         else:
             return [(b"\x00", 0)]
@@ -222,7 +224,6 @@ class QuicSession:
             else:
                 associated_data = quic_packet.first_byte + quic_packet.dcid + quic_packet.packet_num
             payload = decryptor.decrypt(quic_packet.payload, packet_number, associated_data, quic_packet.isserver)
-            print(associated_data.hex())
 
             frames = parse_frames(payload, quic_packet)
 
@@ -462,3 +463,9 @@ class QuicSession:
             self.early_traffic_keys = True
         except:
             logging.warning("No Early Traffic Secrets")
+
+    def binary_to_ip(self, ip_addr):
+        if self.ipv6:
+            return IPv6Address(ip_addr)
+        else:
+            return IPv4Address(ip_addr)

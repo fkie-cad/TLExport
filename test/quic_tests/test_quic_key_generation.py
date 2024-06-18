@@ -4,7 +4,7 @@ from cryptography.hazmat.primitives.hashes import SHA256
 from tlexport.keylog_reader import Key
 from tlexport.quic.quic_decryptor import QuicDecryptor
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
-from tlexport.quic.quic_dissector import QuicVersion
+from tlexport.quic.quic_decode import QuicVersion
 
 
 class TestQuicKeyGen(TestCase):

@@ -267,8 +267,8 @@ class Session:
                      f"Client Port: {self.client_port}"
                      f"\n---------------------------------------------------------------------\n")
         self.get_tls_records()
-        self.builder = OutputBuilder(self.application_traffic, self.server_ip, self.client_ip, self.server_port,
-                                     self.client_port, self.server_mac_addr, self.client_mac_addr, self.portmap)
+        self.builder = OutputBuilder(self.application_traffic, self.server_ip, self.binary_to_ip(self.client_ip).__str__(), self.binary_to_ip(self.server_port).__str__(),
+                                     self.client_port, self.server_mac_addr, self.client_mac_addr, self.portmap, self.ipv6)
         return self.builder.build()
 
     def handle_tls_handshake_record(self, record: TlsRecord, isserver):

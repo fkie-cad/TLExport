@@ -11,17 +11,17 @@ class TestQuicTlsParser(TestCase):
         self.quic_tls_session = QuicTlsSession()
         self.quic_tls_session_2 = QuicTlsSession()
 
-        self.initial_packet_client = QuicPacket(QuicHeaderType.LONG, QuicPacketType.INITIAL, False, first_byte=None)
-        self.initial_packet_server = QuicPacket(QuicHeaderType.LONG, QuicPacketType.INITIAL, True, first_byte=None)
+        self.initial_packet_client = QuicPacket(QuicHeaderType.LONG, QuicPacketType.INITIAL, False, first_byte=None, ts=0)
+        self.initial_packet_server = QuicPacket(QuicHeaderType.LONG, QuicPacketType.INITIAL, True, first_byte=None, ts=0)
 
-        self.handshake_packet_client = QuicPacket(QuicHeaderType.LONG, QuicPacketType.HANDSHAKE, False, first_byte=None)
-        self.handshake_packet_server = QuicPacket(QuicHeaderType.LONG, QuicPacketType.HANDSHAKE, True, first_byte=None)
+        self.handshake_packet_client = QuicPacket(QuicHeaderType.LONG, QuicPacketType.HANDSHAKE, False, first_byte=None, ts=0)
+        self.handshake_packet_server = QuicPacket(QuicHeaderType.LONG, QuicPacketType.HANDSHAKE, True, first_byte=None, ts=0)
 
-        self.rtt_1_packet_client = QuicPacket(QuicHeaderType.SHORT, QuicPacketType.RTT_1, False, first_byte=None)
-        self.rtt_1_packet_server = QuicPacket(QuicHeaderType.SHORT, QuicPacketType.RTT_1, True, first_byte=None)
+        self.rtt_1_packet_client = QuicPacket(QuicHeaderType.SHORT, QuicPacketType.RTT_1, False, first_byte=None, ts=0)
+        self.rtt_1_packet_server = QuicPacket(QuicHeaderType.SHORT, QuicPacketType.RTT_1, True, first_byte=None, ts=0)
 
-        self.rtt_0_packet_client = QuicPacket(QuicHeaderType.SHORT, QuicPacketType.RTT_O, False, first_byte=None)
-        self.rtt_0_packet_server = QuicPacket(QuicHeaderType.SHORT, QuicPacketType.RTT_O, True, first_byte=None)
+        self.rtt_0_packet_client = QuicPacket(QuicHeaderType.SHORT, QuicPacketType.RTT_O, False, first_byte=None, ts=0)
+        self.rtt_0_packet_server = QuicPacket(QuicHeaderType.SHORT, QuicPacketType.RTT_O, True, first_byte=None, ts=0)
 
     def test_grease_bit(self):
         client_hello = bytes.fromhex("06004164010001600303b5aa1aa50bf1a0b538fc0490553b7e40f10859e82ed7f6c82cb485bdec8c5cb20000021301010001350039003f0f1185b6d35dd134fec53f53bb1cefceb7272d050480600000070480600000040480f00000090240640104800075300e01076ab20011080000000100000001000500050100000000000a000a0008001d001700180019000b00020100000d00220020040108090804040308070501080a0805050308080601080b08060603020102030010000500030268330016000000170000002300000033006b0069001d0020f501aa55e894953c84ff651d24b184f868b5fce4c402a13a640b80a0a04690650017004104b410eff4fb20bb78ef7014834162247a76267eaa13ecc5cba8c223a055ebece690bb48812b3f8e6e586c70d9614ad19afb666d376a94de75c0e223e230629a10002b0003020304ff010001000000000e000c0000096c6f63616c686f7374002d0003020100001c00024001")
