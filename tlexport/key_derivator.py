@@ -4,7 +4,7 @@ import math
 from cryptography.hazmat.primitives import hashes, hmac
 from cryptography.hazmat.primitives.ciphers import algorithms
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
-from cryptography.hazmat.primitives.kdf.hkdf import HKDFExpand
+from cryptography.hazmat.primitives.kdf.hkdf import HKDFExpand, HKDF
 
 
 def dev_ssl_30_keys(master_secret, server_random, client_random, key_length, mac_length, key_block_length, cipher_algo,
@@ -81,6 +81,8 @@ def dev_tls_12_keys(master_secret, client_random, server_random, key_length, mac
 
     if cipher_algo in [algorithms.AES, algorithms.Camellia]:
         iv_length = 16
+        if cipher_algo == algorithms.Camellia and use_aead:
+            iv_length = 4
 
     if use_aead:
         mac_length = 0
@@ -162,7 +164,8 @@ def dev_tls_13_keys(secret_list, key_length, hash_fun: hashes.HashAlgorithm):
 
     logging_string = ""
     for k in keys:
-        logging_string += f"{k}: {keys[k].hex()}\n"
+        if keys[k] is not None:
+            logging_string += f"{k}: {keys[k].hex()}\n"
 
     logging.info(f"{logging_string}")
 

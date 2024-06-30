@@ -2,15 +2,19 @@ import os
 from setuptools import setup, find_packages
 from os.path import abspath, dirname, join
 
-from tlexport.__init__ import __version__
-from tlexport.__init__ import __author__
+# here - where we are.
+here = os.path.abspath(os.path.dirname(__file__))
+
+# Path to the about.py file
+about_py_path = join(here, "tlexport", "about.py")
+
+# Read version and author from about.py
+with open(about_py_path) as f:
+    exec(f.read())
 
 # Fetches the content from README.md
 # This will be used for the "long_description" field.
 README_MD = open(join(dirname(abspath(__file__)), "README.md")).read()
-
-# here - where we are.
-here = os.path.abspath(os.path.dirname(__file__))
 
 # read the package requirements for install_requires
 with open(os.path.join(here, 'requirements.txt'), 'r') as f:
