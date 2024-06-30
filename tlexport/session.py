@@ -284,7 +284,7 @@ class Session:
                      f"Client Port: {self.client_port}"
                      f"\n---------------------------------------------------------------------\n")
         self.get_tls_records()
-        self.builder = OutputBuilder(self.application_traffic, self.server_ip, self.binary_to_ip(self.client_ip).__str__(), self.binary_to_ip(self.server_port).__str__(),
+        self.builder = OutputBuilder(self.application_traffic, self.binary_to_ip(self.server_ip).__str__(), self.binary_to_ip(self.client_ip).__str__(), self.server_port,
                                      self.client_port, self.server_mac_addr, self.client_mac_addr, self.portmap, self.ipv6, self.keep_original_ports)
 
         return self.builder.build()

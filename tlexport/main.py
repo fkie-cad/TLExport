@@ -9,9 +9,13 @@ from .packet import Packet
 from . import keylog_reader
 from .dpkt_dsb import Reader
 from .session import Session
-from .checksums import calculate_checksum_tcp
+from .checksums import calculate_checksum_tcp, calculate_checksum_udp
 from .log import set_logger
 from .about import __version__
+from .quic.quic_dissector import get_header_type
+from .quic.quic_packet import QuicHeaderType
+from .quic.quic_session import QuicSession
+from .quic.quic_decode import QuicVersion
 
 
 
@@ -221,13 +225,14 @@ def run():
             else:
                 checksum_test = calculate_checksum_tcp(packet)
 
+            if not checksum_test:
+                logging.info("")
+                logging.info(f"bad checksum discarded Packet {packet.get_params()}")
+                logging.info("")
+            if packet.tcp_packet and checksum_test:
+                handle_packet(packet, args, keylog, sessions, portmap, keep_original_ports, exp_meta=metadata)
 
-        if not checksum_test:
-            logging.info("")
-            logging.info(f"bad checksum discarded Packet {packet.get_params()}")
-            logging.info("")
-        if packet.tcp_packet and checksum_test:
-            handle_packet(packet, args, keylog, sessions, portmap, keep_original_ports, exp_meta=metadata)
+
         elif packet.udp_packet:
             if len(packet.tls_data) == 0:
                 continue
