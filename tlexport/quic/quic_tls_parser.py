@@ -87,6 +87,7 @@ class QuicTlsSession:
         cipher_suite_length = int.from_bytes(record[index: index + 2], "big", signed=False)
         index += 2
         _ciphersuites = record[index: index + cipher_suite_length]
+        self.ciphersuite = _ciphersuites[0:2]  # For early data
         index += cipher_suite_length
 
         compression_methods_length = record[index]

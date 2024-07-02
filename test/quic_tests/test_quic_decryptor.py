@@ -8,18 +8,19 @@ class TestQuicDecryptor(TestCase):
         self.initial_decryptor = QuicDecryptor(
             [bytes.fromhex("cf3a5331653c364c88f0f379b6067e37"), bytes.fromhex("0ac1493ca1905853b0bba03e"),
              bytes.fromhex("1f369613dd76d5467730efcbe3b1a22d"), bytes.fromhex("fa044b2f42a3fd3b46fb255c")],
-            AESGCM)
+            AESGCM, early=False
+        )
 
         self.handshake_decryptor_aes_gcm_128 = QuicDecryptor(
             [bytes.fromhex("78639e484687af4124a1e645d636a34a"), bytes.fromhex("7076c4bd5fcb6e6cb1a7ac42"),
              bytes.fromhex("37b2bc8a8d9d176a9ba730aed578badc"), bytes.fromhex("0856d73ad623683950a0407f")],
-            AESGCM
+            AESGCM, early=False
         )
 
         self.handshake_decryptor_aes_gcm_256 = QuicDecryptor(
             [bytes.fromhex("6c64df56b16bc391b02ec889bd45dbf2bed95b62497a8e67440d45c86d66c37b"), bytes.fromhex("c887d819c4c70d55f3d3cccb"),
              bytes.fromhex("0b39e53b5e55813cbbb10083d79db16b4aa659247d4e878df87256cd4f70efa8"), bytes.fromhex("493067a03444c8ccc180a966")],
-            AESGCM
+            AESGCM, early=False
         )
 
         self.handshake_decryptor_chacha20 = QuicDecryptor(
@@ -27,21 +28,28 @@ class TestQuicDecryptor(TestCase):
              bytes.fromhex("73fd90daad1b4b88ebdfbc66"),
              bytes.fromhex("02d99c4b142b9fd2473b19316c7492274bca67d6d6e75069bdde169c89a67d49"),
              bytes.fromhex("729b4b99b677f7211ac61fb0")],
-            ChaCha20Poly1305
+            ChaCha20Poly1305, early=False
         )
 
-        self.chacha_decryptor = QuicDecryptor([bytes.fromhex("c6d98ff3441c3fe1b2182094f69caa2ed4b716b65488960a7a984979fb23e1c8"), bytes.fromhex("e0459b3474bdd0e44a41c144"), bytes.fromhex("c6d98ff3441c3fe1b2182094f69caa2ed4b716b65488960a7a984979fb23e1c8"), bytes.fromhex("e0459b3474bdd0e44a41c144")], ChaCha20Poly1305)
+        self.chacha_decryptor = QuicDecryptor(
+            [bytes.fromhex("c6d98ff3441c3fe1b2182094f69caa2ed4b716b65488960a7a984979fb23e1c8"),
+             bytes.fromhex("e0459b3474bdd0e44a41c144"),
+             bytes.fromhex("c6d98ff3441c3fe1b2182094f69caa2ed4b716b65488960a7a984979fb23e1c8"),
+             bytes.fromhex("e0459b3474bdd0e44a41c144")],
+            ChaCha20Poly1305, early=False
+        )
 
         self.application_decryptor_aes_128_gcm = QuicDecryptor(
             [bytes.fromhex("cdca566efd02c0cd4c2d5c86e9287f02"),
              bytes.fromhex("1bb922a352e6f308fad49cfd"),
              bytes.fromhex("3ec0404a8f2c08e1b0817a20277bfcc3"),
-             bytes.fromhex("e2129b5df083342078368bc7")], AESGCM)
+             bytes.fromhex("e2129b5df083342078368bc7")], AESGCM, early=False
+        )
 
         self.application_decryptor_aes_256_gcm = QuicDecryptor([bytes.fromhex("ac7393a1f5e2ccf9fa20a126574a835ebbdc5d95d94058bc376999c1c1bfb9f8"),
                                                                 bytes.fromhex("3c2ece416103632c18df9ab6"),
                                                                 bytes.fromhex("ac7393a1f5e2ccf9fa20a126574a835ebbdc5d95d94058bc376999c1c1bfb9f8"),
-                                                                bytes.fromhex("56649096a87d2da1a06b2224")], AESGCM)
+                                                                bytes.fromhex("56649096a87d2da1a06b2224")], AESGCM, early=False)
     def test_initial_decryption(self):
         # Client Initial (From RFC 9001)
         ciphertext = bytes.fromhex("d1b1c98dd7689fb8ec11d242b123dc9bd8bab936b47d92ec356c0bab7df5976d27cd449f63300099f3991c260ec4c60d17b31f8429157bb35a1282a643a8d2262cad67500cadb8e7378c8eb7539ec4d4905fed1bee1fc8aafba17c750e2c7ace01e6005f80fcb7df621230c83711b39343fa028cea7f7fb5ff89eac2308249a02252155e2347b63d58c5457afd84d05dfffdb20392844ae812154682e9cf012f9021a6f0be17ddd0c2084dce25ff9b06cde535d0f920a2db1bf362c23e596d11a4f5a6cf3948838a3aec4e15daf8500a6ef69ec4e3feb6b1d98e610ac8b7ec3faf6ad760b7bad1db4ba3485e8a94dc250ae3fdb41ed15fb6a8e5eba0fc3dd60bc8e30c5c4287e53805db059ae0648db2f64264ed5e39be2e20d82df566da8dd5998ccabdae053060ae6c7b4378e846d29f37ed7b4ea9ec5d82e7961b7f25a9323851f681d582363aa5f89937f5a67258bf63ad6f1a0b1d96dbd4faddfcefc5266ba6611722395c906556be52afe3f565636ad1b17d508b73d8743eeb524be22b3dcbc2c7468d54119c7468449a13d8e3b95811a198f3491de3e7fe942b330407abf82a4ed7c1b311663ac69890f4157015853d91e923037c227a33cdd5ec281ca3f79c44546b9d90ca00f064c99e3dd97911d39fe9c5d0b23a229a234cb36186c4819e8b9c5927726632291d6a418211cc2962e20fe47feb3edf330f2c603a9d48c0fcb5699dbfe5896425c5bac4aee82e57a85aaf4e2513e4f05796b07ba2ee47d80506f8d2c25e50fd14de71e6c418559302f939b0e1abd576f279c4b2e0feb85c1f28ff18f58891ffef132eef2fa09346aee33c28eb130ff28f5b766953334113211996d20011a198e3fc433f9f2541010ae17c1bf202580f6047472fb36857fe843b19f5984009ddc324044e847a4f4a0ab34f719595de37252d6235365e9b84392b061085349d73203a4a13e96f5432ec0fd4a1ee65accdd5e3904df54c1da510b0ff20dcc0c77fcb2c0e0eb605cb0504db87632cf3d8b4dae6e705769d1de354270123cb11450efc60ac47683d7b8d0f811365565fd98c4c8eb936bcab8d069fc33bd801b03adea2e1fbc5aa463d08ca19896d2bf59a071b851e6c239052172f296bfb5e72404790a2181014f3b94a4e97d117b438130368cc39dbb2d198065ae3986547926cd2162f40a29f0c3c8745c0f50fba3852e566d44575c29d39a03f0cda721984b6f440591f355e12d439ff150aab7613499dbd49adabc8676eef023b15b65bfc5ca06948109f23f350db82123535eb8a7433bdabcb909271a6ecbcb58b936a88cd4e8f2e6ff5800175f113253d8fa9ca8885c2f552e657dc603f252e1a8e308f76f0be79e2fb8f5d5fbbe2e30ecadd220723c8c0aea8078cdfcb3868263ff8f0940054da48781893a7e49ad5aff4af300cd804a6b6279ab3ff3afb64491c85194aab760d58a606654f9f4400e8b38591356fbf6425aca26dc85244259ff2b19c41b9f96f3ca9ec1dde434da7d2d392b905ddf3d1f9af93d1af5950bd493f5aa731b4056df31bd267b6b90a079831aaf579be0a39013137aac6d404f518cfd46840647e78bfe706ca4cf5e9c5453e9f7cfd2b8b4c8d169a44e55c88d4a9a7f9474241e221af44860018ab0856972e194cd934")

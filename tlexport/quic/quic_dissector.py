@@ -26,12 +26,15 @@ def get_header_type(datagram_data: bytes):
     else:
         return QuicHeaderType.SHORT
 
+
 def get_packet_type(datagram_data: bytes):
-    packet_type = (datagram_data[0] & int('00100000', 2)) >> 5
+    packet_type = (datagram_data[0] & int('00110000', 2)) >> 4
     match packet_type:
         case 0x00:
             return QuicPacketType.INITIAL
-        case 0x01 | 0x02:
+        case 0x01:
+            return QuicPacketType.RTT_O
+        case 0x02:
             return QuicPacketType.HANDSHAKE
         case 0x03:
             return QuicPacketType.RETRY
@@ -67,7 +70,7 @@ def extract_quic_packet(in_packet: Packet, isserver, guessed_dcid: bytes = None,
 
         header_type = get_header_type(datagram_data)
 
-        if all(b == b"\x00" for b in datagram_data):    # If we have a zero-padding at the end
+        if int.from_bytes(datagram_data, "big") == 0:    # If we have a zero-padding at the end
             in_packet.tls_data = b""
             return packet_buf, in_packet
 
@@ -78,6 +81,8 @@ def extract_quic_packet(in_packet: Packet, isserver, guessed_dcid: bytes = None,
                 fmt_string = "B4sB"  # First Byte, Version, DCID_Len
                 header_parts = struct.unpack_from(fmt_string, datagram_data)
                 version = header_parts[1]
+
+                packet_type = get_packet_type(datagram_data=datagram_data)
 
                 dcid_len = header_parts[2]
                 fmt_string = fmt_string + str(dcid_len) + "s"
@@ -94,8 +99,6 @@ def extract_quic_packet(in_packet: Packet, isserver, guessed_dcid: bytes = None,
                 scid = header_parts[5]
 
                 pn_offset = 7 + len(dcid) + len(scid)
-
-                packet_type = get_packet_type(datagram_data=datagram_data)
 
                 if version == b"\x00\x00\x00\x00":
                     packet_type = QuicPacketType.VERSION_NEG
@@ -143,7 +146,7 @@ def extract_quic_packet(in_packet: Packet, isserver, guessed_dcid: bytes = None,
                                                                     first_packet_byte=header_parts[0],
                                                                     hp_key=hp_key,
                                                                     datagram_data=datagram_data,
-                                                                    pn_offset=pn_offset, ciphersuite=None)
+                                                                    pn_offset=pn_offset, ciphersuite=ciphersuite)
 
                         fmt_string += str(decrypted_header[-1]) + "s"
                         fmt_string += str(int.from_bytes(packet_len, "big") - decrypted_header[-1]) + "s"
@@ -162,7 +165,7 @@ def extract_quic_packet(in_packet: Packet, isserver, guessed_dcid: bytes = None,
 
                         packet_buf.append(packet)
 
-                    case QuicPacketType.HANDSHAKE:  # if packet is handshake or RTT-0
+                    case QuicPacketType.HANDSHAKE | QuicPacketType.RTT_O:   # Handshake and 0-RTT Packets have the same fields (see RFC 9000)
 
                         packet_len_len = get_variable_length_int_length(
                             struct.unpack_from(fmt_string + "s", datagram_data)[-1])
@@ -175,12 +178,14 @@ def extract_quic_packet(in_packet: Packet, isserver, guessed_dcid: bytes = None,
                         sample_offset = pn_offset + 4
 
                         sample = datagram_data[sample_offset: sample_offset + 16]
-                        print("Sample: " + sample.hex())
+                        if packet_type == QuicPacketType.HANDSHAKE:
+                            if isserver:
+                                hp_key = keys["server_handshake_hp"]
+                            else:
+                                hp_key = keys["client_handshake_hp"]
 
-                        if isserver:
-                            hp_key = keys["server_handshake_hp"]
-                        else:
-                            hp_key = keys["client_handshake_hp"]
+                        if packet_type == QuicPacketType.RTT_O:
+                                hp_key = keys["client_early_hp"]
 
                         decrypted_header = remove_header_protection(header_type=QuicHeaderType.LONG,
                                                                     sample=sample,
@@ -198,16 +203,32 @@ def extract_quic_packet(in_packet: Packet, isserver, guessed_dcid: bytes = None,
                         total_packet_len = 1 + 4 + 1 + int.from_bytes(dcid_len, "big") + 1 + int.from_bytes(scid_len, "big") + packet_len_len + \
                                            decrypted_header[-1] + payload_len
 
-                        packet = LongQuicPacket(packet_type=QuicPacketType.HANDSHAKE, version=version,
-                                                dcid_len=dcid_len, dcid=dcid, scid_len=scid_len, scid=scid,
-                                                packet_len=packet_len, packet_num=decrypted_header[1],
-                                                payload=payload, isserver=isserver, first_byte=decrypted_header[0],
-                                                packet_len_bytes=packet_len_bytes, ts=in_packet.timestamp)
+                        if packet_type == QuicPacketType.HANDSHAKE:
+                            packet = LongQuicPacket(packet_type=QuicPacketType.HANDSHAKE, version=version,
+                                                    dcid_len=dcid_len, dcid=dcid, scid_len=scid_len, scid=scid,
+                                                    packet_len=packet_len, packet_num=decrypted_header[1],
+                                                    payload=payload, isserver=isserver, first_byte=decrypted_header[0],
+                                                    packet_len_bytes=packet_len_bytes, ts=in_packet.timestamp)
+                        else:
+                            packet = LongQuicPacket(packet_type=QuicPacketType.RTT_O, version=version,
+                                                    dcid_len=dcid_len, dcid=dcid, scid_len=scid_len, scid=scid,
+                                                    packet_len=packet_len, packet_num=decrypted_header[1],
+                                                    payload=payload, isserver=isserver, first_byte=decrypted_header[0],
+                                                    packet_len_bytes=packet_len_bytes, ts=in_packet.timestamp)
 
                         packet_buf.append(packet)
 
-                    case QuicPacketType.RETRY:  # if packet is retry
-                        pass
+                    case QuicPacketType.RETRY:
+                        fmt_string = fmt_string + str((len(datagram_data) - (1 + 4 + 1 + int.from_bytes(dcid_len, "big") + 1 + int.from_bytes(scid_len, "big")))) + "s"
+                        header_parts = struct.unpack_from(fmt_string, datagram_data)
+                        retry_token = header_parts[-1][:-16]
+                        retry_integ_tag = header_parts[-1][-16:]
+                        packet = LongQuicPacket(packet_type=QuicPacketType.RETRY, version=version,
+                                                dcid_len=dcid_len, dcid=dcid, scid_len=scid_len, scid=scid,
+                                                retry_token=retry_token, retry_integ_tag=retry_integ_tag, isserver=isserver,
+                                                first_byte=datagram_data[0], ts=in_packet.timestamp)
+                        total_packet_len = 1 + 4 + 1 + int.from_bytes(dcid_len, "big") + 1 + int.from_bytes(scid_len, "big") + len(retry_token) + len(retry_integ_tag)
+                        packet_buf.append(packet)
 
                     case _:
                         pass
@@ -250,13 +271,15 @@ def extract_quic_packet(in_packet: Packet, isserver, guessed_dcid: bytes = None,
                                          ts=in_packet.timestamp)
 
                 packet_buf.append(packet)
+
             case _:
                 pass
+
         in_packet.tls_data = datagram_data[total_packet_len:]
         return packet_buf, in_packet
 
     except Exception as e:
-        print(e)
+        print("Error in Dissector: " + e.__str__())
         in_packet.tls_data = b""
         return packet_buf, in_packet
 

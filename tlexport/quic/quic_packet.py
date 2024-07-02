@@ -4,18 +4,18 @@ from enum import Enum
 class QuicPacketType(Enum):
     INITIAL = 0x00
     RTT_O = 0x01
-    RTT_1 = "RTT_1"
+    RTT_1 = "RTT_1"  # No packet type defined in RFC 9000
     HANDSHAKE = 0x02
     RETRY = 0x03
 
-    VERSION_NEG = "VERSION_NEGOTIATION"
+    VERSION_NEG = "VERSION_NEGOTIATION"  # No packet type defined in RFC 9000
 
 
 class QuicHeaderType(Enum):
     SHORT = 0x00
     LONG = 0x01
 
-    VERSION_NEG = "VERSION_NEGOTIATION"
+    VERSION_NEG = "VERSION_NEGOTIATION"  # Has its "own" header type (see RFC 9000)
 
 
 class QuicPacket:
@@ -29,7 +29,7 @@ class QuicPacket:
 
 class LongQuicPacket(QuicPacket):
     def __init__(self, packet_type: QuicPacketType, version: bytes, dcid_len: bytes, dcid: bytes, scid_len: bytes,
-                 scid: bytes, first_byte: bytes, ts: int,
+                 scid: bytes, first_byte: bytes, ts: float,
                  packet_len: bytes = None, packet_len_bytes: bytes = None, packet_num: bytes = None, payload: bytes = None, token_len: int = None,
                  token_len_bytes: bytes = None, token: bytes = None,
                  retry_token: bytes = None, retry_integ_tag: bytes = None, isserver: bool = False, supported_version: bytes = None):
@@ -69,7 +69,7 @@ class ShortQuicPacket(QuicPacket):
 
     # init for 1-RTT Packet
     def __init__(self, packet_type: QuicPacketType, key_phase: int, dcid: bytes, packet_num: int, payload: bytes,
-                 isserver: bool, first_byte: bytes, ts: int):
+                 isserver: bool, first_byte: bytes, ts: float):
         super().__init__(QuicHeaderType.SHORT, packet_type, isserver, first_byte, ts)
         self.key_phase = key_phase
         self.dcid = dcid

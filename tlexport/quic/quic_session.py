@@ -219,8 +219,8 @@ class QuicSession:
                     case QuicPacketType.INITIAL:
                         associated_data = quic_packet.first_byte + quic_packet.version + quic_packet.dcid_len + quic_packet.dcid + quic_packet.scid_len + quic_packet.scid + quic_packet.token_len_bytes + quic_packet.token + quic_packet.packet_len_bytes + quic_packet.packet_num
 
-                    case QuicPacketType.HANDSHAKE:
-                        associated_data = quic_packet.first_byte + quic_packet.version + quic_packet.dcid_len + quic_packet.dcid + quic_packet.scid_len + quic_packet.scid + quic_packet.packet_len_bytes + quic_packet.packet_num #TODO: Check conversion
+                    case QuicPacketType.HANDSHAKE | QuicPacketType.RTT_O:
+                        associated_data = quic_packet.first_byte + quic_packet.version + quic_packet.dcid_len + quic_packet.dcid + quic_packet.scid_len + quic_packet.scid + quic_packet.packet_len_bytes + quic_packet.packet_num
             else:
                 associated_data = quic_packet.first_byte + quic_packet.dcid + quic_packet.packet_num
             payload = decryptor.decrypt(quic_packet.payload, packet_number, associated_data, quic_packet.isserver)
@@ -347,7 +347,7 @@ class QuicSession:
             keys["client_initial_iv"]
         ]
 
-        dec = QuicDecryptor(dec_keys, AESGCM)
+        dec = QuicDecryptor(dec_keys, AESGCM, early=False)
 
         self.keys.update(keys)
         self.decryptors["Initial"] = dec
@@ -440,7 +440,7 @@ class QuicSession:
         try:
             self.decryptors["Handshake"] = QuicDecryptor(
                 [keys["server_handshake_key"], keys["server_handshake_iv"], keys["client_handshake_key"],
-                 keys["client_handshake_iv"]], self.cipher)
+                 keys["client_handshake_iv"]], self.cipher, early=False)
         except:
             self.can_decrypt = False
             logging.error("Missing Key Material")
@@ -450,7 +450,7 @@ class QuicSession:
             self.decryptors["Application"] = [QuicDecryptor(
                 [keys["server_application_key"], keys["server_application_iv"], keys["client_application_key"],
                  keys["client_application_iv"], keys["server_application_sec"], keys["client_application_sec"]],
-                self.cipher)]
+                self.cipher, early=False)]
         except:
             self.can_decrypt = False
             logging.error("Missing Key Material")
@@ -458,8 +458,8 @@ class QuicSession:
 
         try:
             self.decryptors["Early"] = QuicDecryptor(
-                [keys["server_early_key"], keys["server_early_iv"], keys["client_early_key"],
-                 keys["client_early_iv"]], self.cipher)
+                [keys["client_early_key"],
+                 keys["client_early_iv"]], self.cipher, early=True)
             self.early_traffic_keys = True
         except:
             logging.warning("No Early Traffic Secrets")

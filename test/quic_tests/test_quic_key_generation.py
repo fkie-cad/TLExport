@@ -53,7 +53,7 @@ class TestQuicKeyGen(TestCase):
              bytes.fromhex("c6d98ff3441c3fe1b2182094f69caa2ed4b716b65488960a7a984979fb23e1c8"),
              bytes.fromhex("e0459b3474bdd0e44a41c144"),
              bytes.fromhex("9ac312a7f877468ebe69422748ad00a15443f18203a07d6060f688f30f21632b"),
-             bytes.fromhex("9ac312a7f877468ebe69422748ad00a15443f18203a07d6060f688f30f21632b")], ChaCha20Poly1305)
+             bytes.fromhex("9ac312a7f877468ebe69422748ad00a15443f18203a07d6060f688f30f21632b")], ChaCha20Poly1305, early=False)
 
         updated = key_update(decryptor_n, SHA256, 32, ChaCha20Poly1305, QuicVersion.V1)
         self.assertEqual(updated.keys[-1],
@@ -88,7 +88,7 @@ class TestQuicKeyGenV2(TestCase):
              bytes.fromhex("c6d98ff3441c3fe1b2182094f69caa2ed4b716b65488960a7a984979fb23e1c8"),
              bytes.fromhex("e0459b3474bdd0e44a41c144"),
              bytes.fromhex("9ac312a7f877468ebe69422748ad00a15443f18203a07d6060f688f30f21632b"),
-             bytes.fromhex("9ac312a7f877468ebe69422748ad00a15443f18203a07d6060f688f30f21632b")], ChaCha20Poly1305)
+             bytes.fromhex("9ac312a7f877468ebe69422748ad00a15443f18203a07d6060f688f30f21632b")], ChaCha20Poly1305, early=False)
 
         updated = key_update(decryptor_n, SHA256, 32, ChaCha20Poly1305, QuicVersion.V2)
         self.assertEqual(updated.keys[-1],

@@ -165,7 +165,7 @@ def key_update(decryptor_n: QuicDecryptor, hash_fun: hashes.HashAlgorithm, key_l
     server_application_secret = server_n_1
 
     return QuicDecryptor([server_application_key, server_application_iv, client_application_key, client_application_iv,
-                          server_application_secret, client_application_secret], cipher)
+                          server_application_secret, client_application_secret], cipher, early=False)
 
 
 def make_info(label, key_length):

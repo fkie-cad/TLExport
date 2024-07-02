@@ -30,7 +30,7 @@ def arg_parser_init():
     parser.add_argument("-p", "--serverports", help="additional ports to test for TLS-Connections", nargs="+",
                         default=[443])
     parser.add_argument("-i", "--infile", help="path of input file",
-                        default="tlexport/pcaps_und_keylogs/quic_pcaps/aes_gcm_128.pcapng")
+                        default="tlexport/pcaps_und_keylogs/quic_pcaps/chacha_20.pcapng")
     parser.add_argument("-o", "--outfile", help="path of output file", default="out.pcapng")
     parser.add_argument("-s", "--sslkeylog", help="path to sslkeylogfile",
                         default="tlexport/pcaps_und_keylogs/quic_pcaps/all_ciphersuites.log")
@@ -116,6 +116,7 @@ def handle_quic_packet(packet: Packet, keylog, quic_sessions: list[QuicSession],
     header_type = get_header_type(packet_payload)
 
     quic_version = QuicVersion.UNKNOWN
+    dcid = b""
 
     if header_type == QuicHeaderType.LONG:
         dcid_len = packet_payload[5]
