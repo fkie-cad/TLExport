@@ -1,32 +1,43 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import dpkt
 import argparse
 import logging
 
-import dpkt
+from .packet import Packet
+from . import keylog_reader
+from .dpkt_dsb import Reader
+from .session import Session
+from .checksums import calculate_checksum_tcp, calculate_checksum_udp
+from .log import set_logger
+from .about import __version__
+from .quic.quic_dissector import get_header_type
+from .quic.quic_packet import QuicHeaderType
+from .quic.quic_session import QuicSession
+from .quic.quic_decode import QuicVersion
 
-import tlexport.keylog_reader as keylog_reader
-from tlexport.checksums import calculate_checksum_tcp, calculate_checksum_udp
-from tlexport.dpkt_dsb import Reader
-from tlexport.log import set_logger
-from tlexport.packet import Packet
-from tlexport.quic.quic_dissector import get_header_type
-from tlexport.quic.quic_packet import QuicHeaderType
-from tlexport.quic.quic_session import QuicSession
-from tlexport.session import Session
-from tlexport.quic.quic_decode import QuicVersion
+
 
 server_ports = [443, 44330]
 keylog = []
 sessions = []
 quic_sessions = []
 
+class MapPortsAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        keep_original_ports = False  # If -m is used, we don't keep original ports
+        if values:
+            setattr(namespace, self.dest, values)
+        else:
+            # -m used without parameters, use default value
+            setattr(namespace, self.dest, ["443:8080"])
+        setattr(namespace, 'keep_original_ports', keep_original_ports)
+
 
 def arg_parser_init():
-    """Parses given arguments
+    parser = argparse.ArgumentParser(description="TLExport - GENERATING DECRYPTED TLS PCAPS")
 
-        :return: Namespace from *argparse* module
-        :rtype: argparse.Namespace
-    """
-    parser = argparse.ArgumentParser(description="Adding Decryption Secret Block Support to Zeek")
     parser.add_argument("-p", "--serverports", help="additional ports to test for TLS-Connections", nargs="+",
                         default=[443])
     parser.add_argument("-i", "--infile", help="path of input file",
@@ -40,19 +51,23 @@ def arg_parser_init():
     parser.add_argument("-l", "--pcaplegacy", help="enable flag if infile is in the pcap format",
                         action=argparse.BooleanOptionalAction)
     parser.add_argument("-m", "--mapports",
-                        help="map TLS-Ports to specific output ports, use this option when using more than one "
-                             "serverport <serverport:outputport>",
-                        nargs="+",
-                        default=["443:8080"])
-    parser.add_argument("-d", "--debug",
-                        help="enable logger and set log-level, log levels are INFO, WARNING and ERROR",
-                        default="INFO")
+                    action=MapPortsAction,
+                    nargs='*',
+                    default=argparse.SUPPRESS,  # Avoid setting mapports if not used
+                    help="map TLS-Ports to specific output ports, use this option when using more than one "
+                         "serverport <serverport:outputport>")
+    parser.add_argument("-d", "--debug", nargs='?', const="INFO", default="ERROR",
+                        help="Set the logging level (DEBUG, INFO, WARNING, ERROR)")
 
     parser.add_argument("-f", "--filter",
                         help="filter log messages by file, add files you want to filter", nargs="+")
+    parser.add_argument('--version', action='version',version='TLExport v{version}'.format(version=__version__))
     parser.add_argument("-g", "--greasy", help="ignore dtls, due to changes in the QUIC fixed bit, RFC 9287",
                         action=argparse.BooleanOptionalAction, default=False)
-    parser.add_argument("-a", "--metadata", help="export metadata (e.g. TLS-Handshake data), this could be useful for some packet analyzers like Wireshark or Zeek", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("-a", "--metadata", help="export metadata (e.g. TLS-Handshake data), this could be useful for some packet analyzers like Wireshark or Zeek", 
+                        action=argparse.BooleanOptionalAction, default=False)
+    parser.set_defaults(keep_original_ports=True)
+
 
     return parser.parse_args()
 
@@ -68,7 +83,12 @@ def get_port_map(parser: argparse.Namespace):
     """
     port_map: dict = {}
     i: str
+
+    if 'mapports' not in parser or parser.mapports is None:
+        return port_map
+
     for i in parser.mapports:
+        i = i.replace(",", "") # if somebody is using a "," as seperator
         split = i.split(":")
         server_port = int(split[0])
         output_port = int(split[1])
@@ -77,7 +97,8 @@ def get_port_map(parser: argparse.Namespace):
     return port_map
 
 
-def handle_packet(packet: Packet, keylog: bytes, sessions: list[Session], portmap: dict, exp_meta: bool):
+
+def handle_packet(packet: Packet, args, keylog: bytes, sessions: list[Session], portmap: dict, keep_original_ports: bool, exp_meta: bool):
     """Matches packet to it's corresponding session, and initiates the handling of that packet in that session. Only used for *TLS over TCP* (NOT for QUIC, DTLS, etc.)
 
         :param packet: packet that is handled
@@ -89,6 +110,7 @@ def handle_packet(packet: Packet, keylog: bytes, sessions: list[Session], portma
         :param portmap: directory containing how server ports are mapped to the output ports
         :type portmap: dict
     """
+
     for session in sessions:
         if session.matches_session(packet):
             session.handle_packet(packet)
@@ -96,7 +118,8 @@ def handle_packet(packet: Packet, keylog: bytes, sessions: list[Session], portma
 
     # if no matching session is found, a new one is created
     if packet.dport in server_ports or packet.sport in server_ports:
-        sessions.append(Session(packet, server_ports, keylog, portmap, exp_meta))
+        sessions.append(Session(packet, server_ports, keylog, portmap, keep_original_ports, exp_meta))
+        #sessions.append(Session(packet, server_ports, keylog, portmap, exp_meta))
 
 
 def handle_quic_packet(packet: Packet, keylog, quic_sessions: list[QuicSession], portmap):
@@ -154,23 +177,28 @@ def handle_quic_packet(packet: Packet, keylog, quic_sessions: list[QuicSession],
         new_session.handle_packet(packet, dcid, quic_version)
 
 
+
 def run():
     """Starts the program"""
     args = arg_parser_init()
+    keep_original_ports = args.keep_original_ports
     portmap = get_port_map(args)
 
     set_logger(args)
 
-    logging.info(f"Arguments: {args}")
+    logging.debug(f"Arguments: {args}")
     logging.info(f"Mapping Ports: {portmap}")
 
     server_ports.extend([int(x) for x in args.serverports])
-    logging.info(f"Checking for TLS Traffic on these ports: {server_ports}")
+    
 
     metadata: bool = args.metadata
 
     if args.sslkeylog is not None:
+        print(f"[*] Using keys from SSLKEYLOG: {args.sslkeylog}")
         keylog.extend(keylog_reader.read_keylog_from_file(args.sslkeylog))
+    else:
+        print("[*] Using keys from DSB")
 
     file = open(args.infile, "rb")
 
@@ -178,6 +206,9 @@ def run():
         pcap_reader = dpkt.pcap.Reader(file)
     else:
         pcap_reader = Reader(file)
+    
+ 
+    print(f"[*] Checking for TLS traffic on these ports: {server_ports}")
 
     for ts, buf in pcap_reader:
         packet = Packet(buf, ts)
@@ -200,7 +231,8 @@ def run():
                 logging.info(f"bad checksum discarded Packet {packet.get_params()}")
                 logging.info("")
             if packet.tcp_packet and checksum_test:
-                handle_packet(packet, keylog, sessions, portmap, exp_meta=metadata)
+                handle_packet(packet, args, keylog, sessions, portmap, keep_original_ports, exp_meta=metadata)
+
 
         elif packet.udp_packet:
             if len(packet.tls_data) == 0:
@@ -241,6 +273,8 @@ def run():
         writer.writepkt(bytes(buf), ts)
 
     file.close()
+    print(f"[*] written decrypted PCAP to {args.outfile}")
+    print("[*] Thx for using TLExport. Have a nice day!")
 
 
 if __name__ == "__main__":

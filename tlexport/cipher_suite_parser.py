@@ -1,9 +1,14 @@
 
 import logging
+import warnings
 
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.ciphers import algorithms, modes
-from cryptography.hazmat.primitives.ciphers import aead
+# Suppress the deprecation warning from the cryptography module.
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.ciphers import modes
+    from cryptography.hazmat.primitives.ciphers.algorithms import AES, TripleDES, Camellia, IDEA, ARC4, ChaCha20
+    from cryptography.hazmat.primitives.ciphers import aead
 
 cipher_suites = {
     # The following 5 cipher suites are the only cipher suites supported by TLSv1.3
@@ -262,12 +267,12 @@ cipher_suites = {
 cipher_suite_parts = {
 
     "CryptoAlgo": {
-        "AES": (algorithms.AES, 0),
-        "3DES": (algorithms.TripleDES, 0),
+        "AES": (AES, 0),
+        "3DES": (TripleDES, 0),
         "CHACHA20": (aead.ChaCha20Poly1305, 1),
-        "RC4": (algorithms.ARC4, 0),
-        "CAMELLIA": (algorithms.Camellia, 0),
-        "IDEA": (algorithms.IDEA,0),
+        "RC4": (ARC4, 0),
+        "CAMELLIA": (Camellia, 0),
+        "IDEA": (IDEA,0),
 
         "GCM": (aead.AESGCM, 1),
         "CCM": (aead.AESCCM, 1)
@@ -330,7 +335,7 @@ def split_cipher_suite(suite_id):
                 cipher_suite.update({part: (None, 0)})
         added_part = 0
 
-    if cipher_suite["CryptoAlgo"] == (algorithms.AES,
+    if cipher_suite["CryptoAlgo"] == (AES,
                                       0):  # if cipher suite uses AES, check if mode is AEAD, so the correct classes from 'cryptography'-module are used
         if "GCM" in suite_string:
             cipher_suite.update({"CryptoAlgo": (aead.AESGCM, 1)})

@@ -1,3 +1,6 @@
+import logging
+# suppress scapy warning message when importing the module
+logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 from scapy.packet import Raw
 from scapy.layers.l2 import Ether
 from scapy.layers.inet import IP, TCP
@@ -8,7 +11,8 @@ from math import floor
 
 class OutputBuilder:
     def __init__(self, decrypted_records, server_ip, client_ip, server_port, client_port, server_mac_addr,
-                 client_mac_addr, portmap, ipv6) -> None:
+                 client_mac_addr, portmap, ipv6, keep_original_ports: bool) -> None:
+
         self.decrypted_records = decrypted_records
         self.server_ip = server_ip
         self.client_ip = client_ip
@@ -23,10 +27,13 @@ class OutputBuilder:
         self.server_seq = 1
         self.client_seq = 1
 
-        if self.server_port in portmap.keys():
-            self.server_port = portmap[self.server_port]
-        else:
-            self.server_port = self.default_port
+        if keep_original_ports is False:
+            if self.server_port in portmap.keys():
+                self.server_port = portmap[self.server_port]
+                print(f"[*] Writing decrypted session to new destination ports (orignal:new): {self.portmap}")
+            else:
+                print(f"[*] Writing decrypted session to new destination ports (orignal:new): {self.server_port}:{self.default_port}")
+                self.server_port = self.default_port
 
     def build(self):
         self.no_application_records = True

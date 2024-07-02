@@ -1,4 +1,8 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import logging
+import warnings
 from tlexport.packet import Packet
 from tlexport.tlsrecord import TlsRecord
 from tlexport.tlsversion import TlsVersion
@@ -8,17 +12,24 @@ from tlexport.decryptor import Decryptor
 from tlexport.output_builder import OutputBuilder
 
 from ipaddress import IPv6Address, IPv4Address
-from cryptography.hazmat.primitives.ciphers.algorithms import AES, TripleDES, IDEA, Camellia
-from cryptography.hazmat.primitives.ciphers.aead import AESCCM, AESGCM
+
+# Suppress the deprecation warning from the cryptography module.
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    from cryptography.hazmat.primitives.ciphers.algorithms import AES, TripleDES, IDEA, Camellia
+    from cryptography.hazmat.primitives.ciphers.aead import AESCCM, AESGCM
 
 
 class Session:
-    """This class represents the session of a server and a client.
 
-    It handles its packets by parsing them, and initiates the decryption of these packets. However, this class is only used for
-    *TLS over TCP*, which means it **DOES NOT** handle network traffic containing e.g. QUIC or DTLS traffic"""
-    def __init__(self, packet: Packet, server_ports: list[int], keylog: bytes, portmap: dict, exp_meta: bool) -> None:
+    def __init__(self, packet: Packet, server_ports: list[int], keylog: bytes, portmap: dict, keep_original_ports: bool, exp_meta: bool) -> None:
+        self.start_packet = packet
+
         """
+        This class represents the session of a server and a client.
+        It handles its packets by parsing them, and initiates the decryption of these packets. 
+        However, this class is only used for *TLS over TCP*, 
+        which means it **DOES NOT** handle network traffic containing e.g. QUIC or DTLS traffic
 
             :param packet: first packet of a new session instance (this packet DOES NOT have to be the first packet of the conversation in general)
             :type packet: Packet
@@ -30,6 +41,7 @@ class Session:
             :type portmap: dict
         """
         self.exp_meta = exp_meta
+
 
         self.keylog = keylog
 
@@ -61,6 +73,8 @@ class Session:
         self.application_traffic = []
 
         self.portmap = portmap
+        
+        self.keep_original_ports = keep_original_ports  
 
     # search SSLKEYLOG for session log data
     def find_session_secrets(self):
@@ -253,12 +267,15 @@ class Session:
             self.packet_buffer.append(packet)
 
     def decrypt(self):
+        print(f"[*] Decrypting session: [{self.binary_to_ip(self.server_ip)}:{self.server_port}-{self.binary_to_ip(self.client_ip)}:{self.client_port}]\n")
+
         """Starts the decryption process and sets up the output builder for writing the decrypted traffic to a new PCAPNG file
 
             :return: List of decrypted traffic which has been written to a new TCP packet
             :rtype: list
 
         """
+
         logging.info(f"\n---------------------------------------------------------------------\n"
                      f"Decrypting session:\n"
                      f"Server IP: {self.binary_to_ip(self.server_ip)}\n"
@@ -267,8 +284,9 @@ class Session:
                      f"Client Port: {self.client_port}"
                      f"\n---------------------------------------------------------------------\n")
         self.get_tls_records()
-        self.builder = OutputBuilder(self.application_traffic, self.server_ip, self.binary_to_ip(self.client_ip).__str__(), self.binary_to_ip(self.server_port).__str__(),
-                                     self.client_port, self.server_mac_addr, self.client_mac_addr, self.portmap, self.ipv6)
+        self.builder = OutputBuilder(self.application_traffic, self.binary_to_ip(self.server_ip).__str__(), self.binary_to_ip(self.client_ip).__str__(), self.server_port,
+                                     self.client_port, self.server_mac_addr, self.client_mac_addr, self.portmap, self.ipv6, self.keep_original_ports)
+
         return self.builder.build()
 
     def handle_tls_handshake_record(self, record: TlsRecord, isserver):

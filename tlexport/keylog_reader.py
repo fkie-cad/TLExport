@@ -35,7 +35,7 @@ def get_keys_from_string(key_str: str):
 
 def read_keylog_from_file(path):
     if not os.path.exists(path):
-        logging.error("Keylog not found")
+        logging.error("Keylog file not found")
         exit()
 
     file = open(path, "r")
