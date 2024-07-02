@@ -20,7 +20,7 @@ class TestQuicKeyGen(TestCase):
         ]
 
     def test_dev_initial_keys(self):
-        initial_keys = dev_initial_keys(self.destination_connection_id, QuicVersion.V1)
+        initial_keys = dev_initial_keys(self.destination_connection_id, QuicVersion.V1, False)
         self.assertEqual(initial_keys["client_initial_key"], bytes.fromhex("1f369613dd76d5467730efcbe3b1a22d"))
         self.assertEqual(initial_keys["client_initial_iv"], bytes.fromhex("fa044b2f42a3fd3b46fb255c"))
         self.assertEqual(initial_keys["client_initial_hp"], bytes.fromhex("9f50449e04a0e810283a1e9933adedd2"))
@@ -73,7 +73,7 @@ class TestQuicKeyGenV2(TestCase):
         ]
 
     def test_dev_initial_keys(self):
-        initial_keys = dev_initial_keys(self.destination_connection_id, QuicVersion.V2)
+        initial_keys = dev_initial_keys(self.destination_connection_id, QuicVersion.V2, False)
         self.assertEqual(initial_keys["client_initial_key"], bytes.fromhex("8b1a0bc121284290a29e0971b5cd045d"))
         self.assertEqual(initial_keys["client_initial_iv"], bytes.fromhex("91f73e2351d8fa91660e909f"))
         self.assertEqual(initial_keys["client_initial_hp"], bytes.fromhex("45b95e15235d6f45a6b19cbcb0294ba9"))
