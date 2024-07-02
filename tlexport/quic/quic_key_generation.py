@@ -95,9 +95,14 @@ def dev_quic_keys(key_length, secret_list, hash_fun: hashes.HashAlgorithm, quic_
     return keys
 
 
-def dev_initial_keys(connection_id: bytes, quic_version: QuicVersion):
-    key_length = 16
-    hp_key_length = 16
+def dev_initial_keys(connection_id: bytes, quic_version: QuicVersion, chacha20: bool):
+    if chacha20:
+        key_length = 32
+        hp_key_length = 32
+    else:
+        key_length = 16
+        hp_key_length = 16
+
     hash_fun = SHA256()
 
     if quic_version == QuicVersion.V1:

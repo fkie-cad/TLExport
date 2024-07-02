@@ -77,6 +77,8 @@ class QuicSession:
         self.set_packet_number_spaces()
         self.portmap = portmap
 
+        self.init_keys_done = False
+
     # reset Quic Session Parameters, except output buffer and Socket Addresses
     def reset(self):
         self.client_cids = []
@@ -252,7 +254,11 @@ class QuicSession:
             self.quic_version = quic_version
 
         if "Initial" not in list(self.decryptors.keys()):
-            self.set_initial_decryptor(dcid)
+            self.set_initial_decryptor(dcid, False)
+        elif self.tls_session.ciphersuite == b"\x13\x03" and not self.init_keys_done:
+            self.set_initial_decryptor(dcid, True)
+            self.init_keys_done = True
+
 
         isserver = self.packet_isserver(packet, dcid)
 
@@ -333,8 +339,8 @@ class QuicSession:
         else:
             return False
 
-    def set_initial_decryptor(self, dcid: bytes):
-        keys: dict[str, bytes] = dev_initial_keys(dcid, self.quic_version)
+    def set_initial_decryptor(self, dcid: bytes, chacha20: bool):
+        keys: dict[str, bytes] = dev_initial_keys(dcid, self.quic_version, chacha20)
 
         if keys is None:
             self.can_decrypt = False
