@@ -259,7 +259,6 @@ class QuicSession:
             self.set_initial_decryptor(dcid, True)
             self.init_keys_done = True
 
-
         isserver = self.packet_isserver(packet, dcid)
 
         while len(packet.tls_data) != 0:

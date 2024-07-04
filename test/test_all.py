@@ -12,7 +12,7 @@ class TestProg(TestCase):
     def testrun(self):
         for file in self.files:
             res = subprocess.run(
-                ["python3", "../tlexport/main.py", "-i", "./testfiles/" + file, "-s",
+                ["python3", "-m", "tlexport.main", "-i", "./testfiles/" + file, "-s",
                  "./keylog.log", "-d", "INFO", "-p","443", "44330","5556"], capture_output=True, text=True)
 
             self.assertIn("Lorem\\n", res.stderr, msg="\n" + file)
@@ -22,6 +22,6 @@ class TestProg(TestCase):
 
         for file in self.lorem_files:
             res = subprocess.run(
-                ["python3", "../tlexport/main.py", "-i", "./incomplete_pcaps/" + file, "-s", "./keylog.log", "-d", "INFO", "-p","443", "44330","5556"],
+                ["python3", "-m", "tlexport.main", "-i", "./incomplete_pcaps/" + file, "-s", "./keylog.log", "-d", "INFO", "-p","443", "44330","5556"],
                 capture_output=True, text=True)
             self.assertIn("Lorem\\n", res.stderr, msg="\n" + file)
