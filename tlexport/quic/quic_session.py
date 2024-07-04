@@ -467,6 +467,7 @@ class QuicSession:
                 [keys["client_early_key"],
                  keys["client_early_iv"]], self.cipher, early=True)
             self.early_traffic_keys = True
+            logging.info("Using Early Traffic Secrets")
         except:
             logging.warning("No Early Traffic Secrets")
 
