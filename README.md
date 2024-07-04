@@ -63,13 +63,14 @@ In the following we list the supported TLS versions as well as the supported alg
 ### Versions:
 - Secure Socket Layer 3.0
 - Transport Layer Security 1.0-1.3
+- QUIC
+  
 ### Algorithms:
 - Block Ciphers: AES-CBC, Camellia-CBC, 3DES-CBC, IDEA (Untested / no out of the box support by cryptography [#2])
 - AEAD Ciphers: AES-GCM, AES-CCM, AES-CCM-8, CHACHA20-POLY1305
 - Stream Ciphers: RC4
 - Compression: Zlib/Deflate (Untested)
 ### soon(tm)
-- QUIC
 - D-TLS
 
 ## Support
