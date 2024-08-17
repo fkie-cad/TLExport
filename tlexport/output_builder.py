@@ -30,7 +30,7 @@ class OutputBuilder:
         if keep_original_ports is False:
             if self.server_port in portmap.keys():
                 self.server_port = portmap[self.server_port]
-                print(f"[*] Writing decrypted session to new destination ports (orignal:new): {self.portmap}")
+                print(f"[*] Writing decrypted session to new destination ports (orignal:new): {portmap}")
             else:
                 print(f"[*] Writing decrypted session to new destination ports (orignal:new): {self.server_port}:{self.default_port}")
                 self.server_port = self.default_port
