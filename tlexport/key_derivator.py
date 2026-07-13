@@ -11,7 +11,7 @@ from cryptography.hazmat.decrepit.ciphers import algorithms as decrepit_algorith
 def dev_ssl_30_keys(master_secret, server_random, client_random, key_length, mac_length, key_block_length, cipher_algo,
                     use_aead):
     iv_length = 4
-    if cipher_algo in [algorithms.AES, algorithms.Camellia]:
+    if cipher_algo in [algorithms.AES, decrepit_algorithms.Camellia]:
         iv_length = 16
     elif cipher_algo == algorithms.TripleDES:
         iv_length = 8
@@ -43,7 +43,7 @@ def dev_ssl_30_keys(master_secret, server_random, client_random, key_length, mac
 def dev_tls_10_11_keys(master_secret, server_random, client_random, key_length, mac_length, key_block_length,
                        cipher_algo, use_aead):
     iv_length = 4
-    if cipher_algo in [algorithms.AES, algorithms.Camellia]:
+    if cipher_algo in [algorithms.AES, decrepit_algorithms.Camellia]:
         iv_length = 16
     elif cipher_algo == algorithms.TripleDES:
         iv_length = 8
