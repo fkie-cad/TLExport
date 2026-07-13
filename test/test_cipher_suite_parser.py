@@ -3,6 +3,7 @@ from tlexport.cipher_suite_parser import cipher_suites, split_cipher_suite
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers import algorithms, modes
 from cryptography.hazmat.primitives.ciphers import aead
+from cryptography.hazmat.decrepit.ciphers import algorithms as decrepit_algorithms
 
 import sys
 
@@ -51,7 +52,7 @@ class TestCipherSuiteParser(TestCase):
                                       "TagLength": 8})
                 case b'\xC0\x83':
                     self.assertEqual(split_cipher_suite(suite),
-                                     {"CryptoAlgo": (algorithms.Camellia, 0),
+                                     {"CryptoAlgo": (decrepit_algorithms.Camellia, 0),
                                       "Mode": (modes.GCM, 1),
                                       "MAC": hashes.SHA384,
                                       "KeyLength": 32,
