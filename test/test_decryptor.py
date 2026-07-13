@@ -1,9 +1,10 @@
 from unittest import TestCase
 
-from cryptography.hazmat.primitives.ciphers.algorithms import ARC4, AES, TripleDES, Camellia
+from cryptography.hazmat.primitives.ciphers.algorithms import ARC4, AES, TripleDES
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305, AESGCM, AESCCM
 from cryptography.hazmat.primitives.hashes import SHA1, SHA256, SHA384
 from cryptography.hazmat.primitives.ciphers.modes import CBC, GCM
+from cryptography.hazmat.decrepit.ciphers.algorithms import Camellia
 
 from tlexport.decryptor import Decryptor
 from tlexport.tlsversion import TlsVersion
@@ -420,7 +421,7 @@ class TestSsl30Decryptor(TestCase):
                                                          b'\xff\x01': bytearray(b'\x00'),
                                                          b'\x00\x1c': bytearray(b'@\x00')},0)
 
-        self.ssl_3_0_camellia_128_decryptor = Decryptor(Camellia, CBC, SHA1, {
+        self.ssl_3_0__128_decryptor = Decryptor(, CBC, SHA1, {
             'client_write_MAC_secret': b'\xb5\xeb\xa5\xed\xae:\xc8\xe0\\\xf8!\x80\xe4G\x1d\xe4g\xd3\xa6"',
             'server_write_MAC_secret': b'\xe7\xdb\x18P\x00\xa7CZ9\xfc\xcd\xcb?\x1a\x06\xbe\xd6o\xa2e',
             'client_write_key': b'K\xe6D[df\xdf\x87mOw\xac\xa4\xdc\xffX',
@@ -432,7 +433,7 @@ class TestSsl30Decryptor(TestCase):
                                                          b'\xff\x01': bytearray(b'\x00'),
                                                          b'\x00\x1c': bytearray(b'@\x00')},0)
 
-        self.ssl_3_0_camellia_256_decryptor = Decryptor(Camellia, CBC, SHA1, {
+        self.ssl_3_0__256_decryptor = Decryptor(, CBC, SHA1, {
             'client_write_MAC_secret': b'\x93\x04\x9cm\xca\x92\x9a\xb4u\xfd6\xc0\xa3\xa9v\xee\x80QX4',
             'server_write_MAC_secret': b'HQX\x8d\xdfd\x9aR\x1f\x16X\xf7,gVI$\x82%\x9b',
             'client_write_key': b'\xec\xdf\xfb\xd5cb\x101\xab\xcb\xc8 \xd3\x86\xaa\x85#\x04\xd6\xc99X\xba\xf0\xaa\xabG\xbeC:\x89\x15',
@@ -538,7 +539,7 @@ class TestSsl30Decryptor(TestCase):
         self.assertEqual(self.ssl_3_0_3des_ebe_cbc_decryptor.decrypt(client_2, False), b'Lorem\n')
         self.assertEqual(self.ssl_3_0_3des_ebe_cbc_decryptor.decrypt(server_2, True), b'Lorem\n')
 
-    def test_camellia_128_decrypt(self):
+    def test__128_decrypt(self):
         client_1 = TlsRecord(bytearray(
             b'\x16\x03\x00\x00D\x0c\xc0\xb7p\xc2\xf6S\xb5F2\xb2VN\xa3\xe7\x9a\\\xb6\xa0fD\xa8I\xf8\xcc\x93QP5\xd7w\nN\x18\xfe\x13n\xa3\x1f\x15\xd8QwM4N-\x9bV,\xe8)/)\x89\x11(\xe58\xeb\xdc\x9e\x82\xba\x89(+r'),
             [], False)
@@ -554,14 +555,14 @@ class TestSsl30Decryptor(TestCase):
                 b'\x17\x03\x00\x00$L\x03w\x13\xb1w$\x050\x8d\x8d\xd5w0\t\x92oJ}\x93\xb1\xba0R\xf0\x99VV`NB\x02\xe4b\x8c\xac'),
             [], True)
 
-        self.assertEqual(self.ssl_3_0_camellia_128_decryptor.decrypt(client_1, False),
+        self.assertEqual(self.ssl_3_0__128_decryptor.decrypt(client_1, False),
                          b'\x14\x00\x00$\xff\x0c\xc5C\x18\xbd\xa7\xa0\xc4\xc4\xe1\xbf\xe6$\xaeGz\x93\xb0\xcdA\x92\x8d3l\xbdFu\xf6}\xac$T\xb8%\x0e')
-        self.assertEqual(self.ssl_3_0_camellia_128_decryptor.decrypt(server_1, True),
+        self.assertEqual(self.ssl_3_0__128_decryptor.decrypt(server_1, True),
                          b"\x14\x00\x00$\x03urquaE\x05\x04\xbe'\xcc\xc0\x1fz\x06\x8b@5\xfaK\xb8x\xf6\xdf\xf6\xeej\x85+\x88\x81h\x9d\xa1>")
-        self.assertEqual(self.ssl_3_0_camellia_128_decryptor.decrypt(client_2, False), b'Lorem\n')
-        self.assertEqual(self.ssl_3_0_camellia_128_decryptor.decrypt(server_2, True), b'Lorem\n')
+        self.assertEqual(self.ssl_3_0__128_decryptor.decrypt(client_2, False), b'Lorem\n')
+        self.assertEqual(self.ssl_3_0__128_decryptor.decrypt(server_2, True), b'Lorem\n')
 
-    def test_camellia_256_decrypt(self):
+    def test__256_decrypt(self):
         client_1 = TlsRecord(bytearray(
             b"\x16\x03\x00\x00D\x9f6\x81\xdc^\xa3~\xff7\xcck=d\xdd\'\xd7\x0fJxi\xbe\xf4&\x11\xb4\xfb\x86\x9e\x90Ya\x7f\x13\xb0\x89\xcdD\xfeJ^\xf3KhS\xb6-:1\x03rF\xb6o\xa5K+\xc0\x8f{\xdd\x03\x02\xe0!\xef\x1f4\xda"),
             [], False)
@@ -575,9 +576,9 @@ class TestSsl30Decryptor(TestCase):
             b'\x17\x03\x00\x00$\xbb\x03Z\x15:\tb\xf4\xcct5\xd6%W\xd7\xd0Og\x9a\xb97\x85\xc3\xdf\x91p2\xfb\x8f\xc2\xeb\x90\xa9\xc1\x9c\xf0'),
             [], True)
 
-        self.assertEqual(self.ssl_3_0_camellia_256_decryptor.decrypt(client_1, False),
+        self.assertEqual(self.ssl_3_0__256_decryptor.decrypt(client_1, False),
                          b"\x14\x00\x00$'<&\xd6\xbc\x98\xd5\x1a\x07K\x96\xdde\x98\x91\xb7\xf4\xea5\x8f]x>\x9a\x14<\x82\xf4\xd8U\xfb\xd7\x08k\xe9&")
-        self.assertEqual(self.ssl_3_0_camellia_256_decryptor.decrypt(server_1, True),
+        self.assertEqual(self.ssl_3_0__256_decryptor.decrypt(server_1, True),
                          b'\x14\x00\x00$\xc0]\xac."K\x1e\xd9p\x9d9\x97H\xdc%\x87\x80\x1f\x1e\x19\xe9\xd2\x80\xb3d\xd9\xb2\x95\xb7m\xe1\xec\xbca\xfb\xa3')
         self.assertEqual(self.ssl_3_0_camellia_256_decryptor.decrypt(client_2, False), b'Lorem\n')
         self.assertEqual(self.ssl_3_0_camellia_256_decryptor.decrypt(server_2, True), b'Lorem\n')
