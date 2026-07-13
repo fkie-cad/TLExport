@@ -282,8 +282,8 @@ cipher_suite_parts = {
     },
 
     "Mode": {
-        "CBC": (decrepit_modes.CBC, 0),  # Tuple[0] is the mode and Tuple[1] is 1 if mode uses AEAD, else it is 0
-        "CFB": (modes.CFB, 0),
+        "CBC": (modes.CBC, 0),  # Tuple[0] is the mode and Tuple[1] is 1 if mode uses AEAD, else it is 0
+        "CFB": (decrepit_modes.CFB, 0),
         "CTR": (modes.CTR, 0),
         "GCM": (modes.GCM, 1),
         "CCM": (aead.AESCCM, 1),
