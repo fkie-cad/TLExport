@@ -13,7 +13,7 @@ def dev_ssl_30_keys(master_secret, server_random, client_random, key_length, mac
     iv_length = 4
     if cipher_algo in [algorithms.AES, decrepit_algorithms.Camellia]:
         iv_length = 16
-    elif cipher_algo == algorithms.TripleDES:
+    elif cipher_algo == decrepit_algorithms.TripleDES:
         iv_length = 8
 
     if use_aead:
@@ -45,7 +45,7 @@ def dev_tls_10_11_keys(master_secret, server_random, client_random, key_length, 
     iv_length = 4
     if cipher_algo in [algorithms.AES, decrepit_algorithms.Camellia]:
         iv_length = 16
-    elif cipher_algo == algorithms.TripleDES:
+    elif cipher_algo == decrepit_algorithms.TripleDES:
         iv_length = 8
 
     if use_aead:

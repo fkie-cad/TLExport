@@ -59,14 +59,14 @@ class TestCipherSuiteParser(TestCase):
                                       "TagLength": 16})
                 case b'\x00\x24':
                     self.assertEqual(split_cipher_suite(suite),
-                                     {"CryptoAlgo": (algorithms.ARC4, 0),
+                                     {"CryptoAlgo": (decrepit_algorithms.ARC4, 0),
                                       "Mode": (None, 0),
                                       "MAC": hashes.MD5,
                                       "KeyLength": 16,
                                       "TagLength": 16})
                 case b'\xC0\x08':
                     self.assertEqual(split_cipher_suite(suite),
-                                     {"CryptoAlgo": (algorithms.TripleDES, 0),
+                                     {"CryptoAlgo": (decrepit_algorithms.TripleDES, 0),
                                       "Mode": (modes.CBC, 0),
                                       "MAC": hashes.SHA1,
                                       "KeyLength": 24,
