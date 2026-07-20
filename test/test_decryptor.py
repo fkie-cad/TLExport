@@ -1,9 +1,10 @@
 from unittest import TestCase
 
-from cryptography.hazmat.primitives.ciphers.algorithms import ARC4, AES, TripleDES, Camellia
+from cryptography.hazmat.primitives.ciphers.algorithms import ARC4, AES, TripleDES
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305, AESGCM, AESCCM
 from cryptography.hazmat.primitives.hashes import SHA1, SHA256, SHA384
 from cryptography.hazmat.primitives.ciphers.modes import CBC, GCM
+from cryptography.hazmat.decrepit.ciphers.algorithms import Camellia
 
 from tlexport.decryptor import Decryptor
 from tlexport.tlsversion import TlsVersion

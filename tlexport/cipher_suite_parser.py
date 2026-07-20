@@ -7,8 +7,11 @@ with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     from cryptography.hazmat.primitives import hashes
     from cryptography.hazmat.primitives.ciphers import modes
-    from cryptography.hazmat.primitives.ciphers.algorithms import AES, TripleDES, Camellia, IDEA, ARC4, ChaCha20
+    from cryptography.hazmat.primitives.ciphers.algorithms import AES, TripleDES, IDEA, ARC4, ChaCha20
     from cryptography.hazmat.primitives.ciphers import aead
+    from cryptography.hazmat.decrepit.ciphers import modes as decrepit_modes
+    from cryptography.hazmat.decrepit.ciphers.algorithms import Camellia
+
 
 cipher_suites = {
     # The following 5 cipher suites are the only cipher suites supported by TLSv1.3
@@ -281,7 +284,7 @@ cipher_suite_parts = {
 
     "Mode": {
         "CBC": (modes.CBC, 0),  # Tuple[0] is the mode and Tuple[1] is 1 if mode uses AEAD, else it is 0
-        "CFB": (modes.CFB, 0),
+        "CFB": (decrepit_modes.CFB, 0),
         "CTR": (modes.CTR, 0),
         "GCM": (modes.GCM, 1),
         "CCM": (aead.AESCCM, 1),

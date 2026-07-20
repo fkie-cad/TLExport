@@ -16,8 +16,9 @@ from ipaddress import IPv6Address, IPv4Address
 # Suppress the deprecation warning from the cryptography module.
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
-    from cryptography.hazmat.primitives.ciphers.algorithms import AES, TripleDES, IDEA, Camellia
+    from cryptography.hazmat.primitives.ciphers.algorithms import AES, TripleDES, IDEA
     from cryptography.hazmat.primitives.ciphers.aead import AESCCM, AESGCM
+    from cryptography.hazmat.decrepit.ciphers.algorithms import Camellia
 
 
 class Session:

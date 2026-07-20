@@ -5,12 +5,13 @@ from cryptography.hazmat.primitives import hashes, hmac
 from cryptography.hazmat.primitives.ciphers import algorithms
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 from cryptography.hazmat.primitives.kdf.hkdf import HKDFExpand, HKDF
+from cryptography.hazmat.decrepit.ciphers import algorithms as decrepit_algorithms
 
 
 def dev_ssl_30_keys(master_secret, server_random, client_random, key_length, mac_length, key_block_length, cipher_algo,
                     use_aead):
     iv_length = 4
-    if cipher_algo in [algorithms.AES, algorithms.Camellia]:
+    if cipher_algo in [algorithms.AES, decrepit_algorithms.Camellia]:
         iv_length = 16
     elif cipher_algo == algorithms.TripleDES:
         iv_length = 8
@@ -42,7 +43,7 @@ def dev_ssl_30_keys(master_secret, server_random, client_random, key_length, mac
 def dev_tls_10_11_keys(master_secret, server_random, client_random, key_length, mac_length, key_block_length,
                        cipher_algo, use_aead):
     iv_length = 4
-    if cipher_algo in [algorithms.AES, algorithms.Camellia]:
+    if cipher_algo in [algorithms.AES, decrepit_algorithms.Camellia]:
         iv_length = 16
     elif cipher_algo == algorithms.TripleDES:
         iv_length = 8
@@ -79,9 +80,9 @@ def dev_tls_12_keys(master_secret, client_random, server_random, key_length, mac
     if cipher_algo == ChaCha20Poly1305:
         iv_length = 12
 
-    if cipher_algo in [algorithms.AES, algorithms.Camellia]:
+    if cipher_algo in [algorithms.AES, decrepit_algorithms.Camellia]:
         iv_length = 16
-        if cipher_algo == algorithms.Camellia and use_aead:
+        if cipher_algo == decrepit_algorithms.Camellia and use_aead:
             iv_length = 4
 
     if use_aead:
