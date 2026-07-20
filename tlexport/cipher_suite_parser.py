@@ -7,10 +7,10 @@ with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     from cryptography.hazmat.primitives import hashes
     from cryptography.hazmat.primitives.ciphers import modes
-    from cryptography.hazmat.primitives.ciphers.algorithms import AES, TripleDES, IDEA, ARC4, ChaCha20
+    from cryptography.hazmat.primitives.ciphers.algorithms import AES, ChaCha20
     from cryptography.hazmat.primitives.ciphers import aead
     from cryptography.hazmat.decrepit.ciphers import modes as decrepit_modes
-    from cryptography.hazmat.decrepit.ciphers.algorithms import Camellia
+    from cryptography.hazmat.decrepit.ciphers.algorithms import Camellia, TripleDES, IDEA, ARC4
 
 
 cipher_suites = {

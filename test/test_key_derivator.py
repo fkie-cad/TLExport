@@ -1,7 +1,8 @@
 from unittest import TestCase
 import tlexport.key_derivator as kd
-from cryptography.hazmat.primitives.ciphers.algorithms import ARC4, AES, TripleDES
+from cryptography.hazmat.primitives.ciphers.algorithms import AES
 from cryptography.hazmat.primitives.hashes import SHA256
+from cryptography.hazmat.decrepit.ciphers.algorithms import ARC4, TripleDES
 
 
 class KeyGenerationTests(TestCase):
