@@ -4,12 +4,13 @@ from ipaddress import IPv6Address, IPv4Address
 
 class Packet:
     """This class serves as a wrapper class for simplifying handling network packets and their metadata."""
+
     def __init__(self, binary: bytes, timestamp: float) -> None:
         """
-            :param binary: packet data in bytes extracted by dpkt
-            :type binary: bytes
-            :param timestamp: timestamp of packet extracted by dpkt
-            :type timestamp: float
+        :param binary: packet data in bytes extracted by dpkt
+        :type binary: bytes
+        :param timestamp: timestamp of packet extracted by dpkt
+        :type timestamp: float
         """
         self.timestamp = timestamp
         self.binary = binary
@@ -19,7 +20,10 @@ class Packet:
         self.tcp_packet = True
         self.udp_packet = False
 
-        if not (isinstance(self.ethernet.data, dpkt.ip.IP) or isinstance(self.ethernet.data, dpkt.ip6.IP6)):
+        if not (
+            isinstance(self.ethernet.data, dpkt.ip.IP)
+            or isinstance(self.ethernet.data, dpkt.ip6.IP6)
+        ):
             self.tcp_packet = False
             return
 
@@ -69,11 +73,15 @@ class Packet:
             dst_address = IPv6Address(self.ip_dst)
 
         if self.tcp_packet:
-            return (f"source: {src_address} {self.sport}, "
-                    f"destination: {dst_address} {self.dport}, "
-                    f"sequence number: {self.seq}, timestamp: {self.timestamp}")
+            return (
+                f"source: {src_address} {self.sport}, "
+                f"destination: {dst_address} {self.dport}, "
+                f"sequence number: {self.seq}, timestamp: {self.timestamp}"
+            )
 
         else:
-            return (f"source: {src_address} {self.sport}, "
-                    f"destination: {dst_address} {self.dport}, "
-                    f"timestamp: {self.timestamp}")
+            return (
+                f"source: {src_address} {self.sport}, "
+                f"destination: {dst_address} {self.dport}, "
+                f"timestamp: {self.timestamp}"
+            )

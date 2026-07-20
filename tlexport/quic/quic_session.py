@@ -7,10 +7,26 @@ from cryptography.hazmat.primitives.hashes import SHA256, SHA384
 from tlexport.keylog_reader import Key
 from tlexport.packet import Packet
 from tlexport.quic.quic_decryptor import QuicDecryptor
-from tlexport.quic.quic_frame import CryptoFrame, StreamFrame, NewConnectionIdFrame, ConnectionCloseFrame, Frame, \
-    parse_frames, PseudoVersionNegotiationFrame
-from tlexport.quic.quic_key_generation import dev_quic_keys, dev_initial_keys, key_update
-from tlexport.quic.quic_packet import QuicPacket, ShortQuicPacket, LongQuicPacket, QuicPacketType
+from tlexport.quic.quic_frame import (
+    CryptoFrame,
+    StreamFrame,
+    NewConnectionIdFrame,
+    ConnectionCloseFrame,
+    Frame,
+    parse_frames,
+    PseudoVersionNegotiationFrame,
+)
+from tlexport.quic.quic_key_generation import (
+    dev_quic_keys,
+    dev_initial_keys,
+    key_update,
+)
+from tlexport.quic.quic_packet import (
+    QuicPacket,
+    ShortQuicPacket,
+    LongQuicPacket,
+    QuicPacketType,
+)
 from tlexport.quic.quic_tls_parser import QuicTlsSession
 from tlexport.quic.quic_dissector import extract_quic_packet
 from tlexport.quic.quic_decode import QuicVersion
@@ -22,7 +38,7 @@ PACKET_TYPE_MAP = {
     QuicPacketType.INITIAL: (QuicPacketType.INITIAL,),
     QuicPacketType.HANDSHAKE: (QuicPacketType.HANDSHAKE,),
     QuicPacketType.RTT_O: (QuicPacketType.RTT_1, QuicPacketType.RTT_O),
-    QuicPacketType.RTT_1: (QuicPacketType.RTT_1, QuicPacketType.RTT_O)
+    QuicPacketType.RTT_1: (QuicPacketType.RTT_1, QuicPacketType.RTT_O),
 }
 
 
@@ -125,28 +141,55 @@ class QuicSession:
 
     def build_output(self, metadata: bool):
         if len(self.output_buffer) > 0:
-            output_builder = QUICOutputbuilder(self.output_buffer, self.binary_to_ip(self.server_ip).__str__(), self.binary_to_ip(self.client_ip).__str__(), self.server_port, self.client_port, self.server_mac_addr, self.client_mac_addr, self.portmap, self.ipv6)
+            output_builder = QUICOutputbuilder(
+                self.output_buffer,
+                self.binary_to_ip(self.server_ip).__str__(),
+                self.binary_to_ip(self.client_ip).__str__(),
+                self.server_port,
+                self.client_port,
+                self.server_mac_addr,
+                self.client_mac_addr,
+                self.portmap,
+                self.ipv6,
+            )
             return output_builder.build(metadata)
         else:
             return [(b"\x00", 0)]
 
     def set_packet_number_spaces(self):
         # RTT_1 and RTT_0 are in same packet_number space 12.3
-        self.packet_number_server = {(QuicPacketType.INITIAL,): 0, (QuicPacketType.HANDSHAKE,): 0,
-                                     (QuicPacketType.RTT_1, QuicPacketType.RTT_O): 0}
-        self.packet_number_client = {(QuicPacketType.INITIAL,): 0, (QuicPacketType.HANDSHAKE,): 0,
-                                     (QuicPacketType.RTT_1, QuicPacketType.RTT_O): 0}
+        self.packet_number_server = {
+            (QuicPacketType.INITIAL,): 0,
+            (QuicPacketType.HANDSHAKE,): 0,
+            (QuicPacketType.RTT_1, QuicPacketType.RTT_O): 0,
+        }
+        self.packet_number_client = {
+            (QuicPacketType.INITIAL,): 0,
+            (QuicPacketType.HANDSHAKE,): 0,
+            (QuicPacketType.RTT_1, QuicPacketType.RTT_O): 0,
+        }
 
-        self.buffer_spaces_server = {(QuicPacketType.INITIAL,): [], (QuicPacketType.HANDSHAKE,): [],
-                                     (QuicPacketType.RTT_1, QuicPacketType.RTT_O): []}
-        self.buffer_spaces_client = {(QuicPacketType.INITIAL,): [], (QuicPacketType.HANDSHAKE,): [],
-                                     (QuicPacketType.RTT_1, QuicPacketType.RTT_O): []}
+        self.buffer_spaces_server = {
+            (QuicPacketType.INITIAL,): [],
+            (QuicPacketType.HANDSHAKE,): [],
+            (QuicPacketType.RTT_1, QuicPacketType.RTT_O): [],
+        }
+        self.buffer_spaces_client = {
+            (QuicPacketType.INITIAL,): [],
+            (QuicPacketType.HANDSHAKE,): [],
+            (QuicPacketType.RTT_1, QuicPacketType.RTT_O): [],
+        }
 
     def handle_crypto_frame(self, frame: CryptoFrame):
         self.tls_session.update_session(frame)
         if self.tls_session.new_data:
-            if self.tls_session.client_random is not None and self.tls_session.ciphersuite is not None:
-                self.set_tls_decryptors(self.tls_session.client_random, self.tls_session.ciphersuite)
+            if (
+                self.tls_session.client_random is not None
+                and self.tls_session.ciphersuite is not None
+            ):
+                self.set_tls_decryptors(
+                    self.tls_session.client_random, self.tls_session.ciphersuite
+                )
             self.alpn = self.tls_session.alpn
             self.greasy_bit = self.tls_session.greasy_bit
             self.tls_session.new_data = False
@@ -185,9 +228,16 @@ class QuicSession:
                 self.epoch_client += 1
                 self.last_key_phase_client = key_phase_bit
 
-        if self.epoch_client == len(self.decryptors["Application"]) or self.epoch_server == len(
-                self.decryptors["Application"]):
-            new_decryptor = key_update(self.decryptors["Application"][-1], self.hash_fun, self.key_length, self.cipher, self.quic_version)
+        if self.epoch_client == len(
+            self.decryptors["Application"]
+        ) or self.epoch_server == len(self.decryptors["Application"]):
+            new_decryptor = key_update(
+                self.decryptors["Application"][-1],
+                self.hash_fun,
+                self.key_length,
+                self.cipher,
+                self.quic_version,
+            )
             self.decryptors["Application"].append(new_decryptor)
 
     def decrypt_packet(self, quic_packet: type[QuicPacket]):
@@ -212,20 +262,45 @@ class QuicSession:
                 case QuicPacketType.RTT_O:
                     decryptor = self.decryptors["Early"]
         try:
-
             packet_number = self.get_full_packet_number(quic_packet)
 
             if isinstance(quic_packet, LongQuicPacket):
                 match quic_packet.packet_type:
-
                     case QuicPacketType.INITIAL:
-                        associated_data = quic_packet.first_byte + quic_packet.version + quic_packet.dcid_len + quic_packet.dcid + quic_packet.scid_len + quic_packet.scid + quic_packet.token_len_bytes + quic_packet.token + quic_packet.packet_len_bytes + quic_packet.packet_num
+                        associated_data = (
+                            quic_packet.first_byte
+                            + quic_packet.version
+                            + quic_packet.dcid_len
+                            + quic_packet.dcid
+                            + quic_packet.scid_len
+                            + quic_packet.scid
+                            + quic_packet.token_len_bytes
+                            + quic_packet.token
+                            + quic_packet.packet_len_bytes
+                            + quic_packet.packet_num
+                        )
 
                     case QuicPacketType.HANDSHAKE | QuicPacketType.RTT_O:
-                        associated_data = quic_packet.first_byte + quic_packet.version + quic_packet.dcid_len + quic_packet.dcid + quic_packet.scid_len + quic_packet.scid + quic_packet.packet_len_bytes + quic_packet.packet_num
+                        associated_data = (
+                            quic_packet.first_byte
+                            + quic_packet.version
+                            + quic_packet.dcid_len
+                            + quic_packet.dcid
+                            + quic_packet.scid_len
+                            + quic_packet.scid
+                            + quic_packet.packet_len_bytes
+                            + quic_packet.packet_num
+                        )
             else:
-                associated_data = quic_packet.first_byte + quic_packet.dcid + quic_packet.packet_num
-            payload = decryptor.decrypt(quic_packet.payload, packet_number, associated_data, quic_packet.isserver)
+                associated_data = (
+                    quic_packet.first_byte + quic_packet.dcid + quic_packet.packet_num
+                )
+            payload = decryptor.decrypt(
+                quic_packet.payload,
+                packet_number,
+                associated_data,
+                quic_packet.isserver,
+            )
 
             frames = parse_frames(payload, quic_packet)
 
@@ -262,7 +337,13 @@ class QuicSession:
         isserver = self.packet_isserver(packet, dcid)
 
         while len(packet.tls_data) != 0:
-            quic_packets, packet = extract_quic_packet(in_packet=packet, isserver=isserver, guessed_dcid=dcid, keys=self.keys, ciphersuite=self.tls_session.ciphersuite)
+            quic_packets, packet = extract_quic_packet(
+                in_packet=packet,
+                isserver=isserver,
+                guessed_dcid=dcid,
+                keys=self.keys,
+                ciphersuite=self.tls_session.ciphersuite,
+            )
 
             self.packet_buffer_quic.extend(quic_packets)
 
@@ -270,11 +351,16 @@ class QuicSession:
 
     def handle_quic_packet(self):
         for quic_packet in self.packet_buffer_quic:
-            if quic_packet.packet_type not in [QuicPacketType.RETRY, QuicPacketType.VERSION_NEG]:
+            if quic_packet.packet_type not in [
+                QuicPacketType.RETRY,
+                QuicPacketType.VERSION_NEG,
+            ]:
                 self.decrypt_packet(quic_packet)
 
             if quic_packet.packet_type == QuicPacketType.VERSION_NEG:
-                frame = PseudoVersionNegotiationFrame(payload=quic_packet.supported_version, src_packet=quic_packet)
+                frame = PseudoVersionNegotiationFrame(
+                    payload=quic_packet.supported_version, src_packet=quic_packet
+                )
                 self.handle_frame(frame)
 
             if quic_packet.packet_type == QuicPacketType.RETRY:
@@ -323,12 +409,20 @@ class QuicSession:
 
     def matches_session_dgram(self, ip_src, ip_dst, sport, dport):
 
-        if (ip_src == self.server_ip and sport == self.server_port
-                and ip_dst == self.client_ip and dport == self.client_port):
+        if (
+            ip_src == self.server_ip
+            and sport == self.server_port
+            and ip_dst == self.client_ip
+            and dport == self.client_port
+        ):
             return True
 
-        elif (ip_src == self.client_ip and sport == self.client_port
-              and ip_dst == self.server_ip and dport == self.server_port):
+        elif (
+            ip_src == self.client_ip
+            and sport == self.client_port
+            and ip_dst == self.server_ip
+            and dport == self.server_port
+        ):
             return True
         return False
 
@@ -349,7 +443,7 @@ class QuicSession:
             keys["server_initial_key"],
             keys["server_initial_iv"],
             keys["client_initial_key"],
-            keys["client_initial_iv"]
+            keys["client_initial_iv"],
         ]
 
         dec = QuicDecryptor(dec_keys, AESGCM, early=False)
@@ -357,19 +451,29 @@ class QuicSession:
         self.keys.update(keys)
         self.decryptors["Initial"] = dec
 
-    def get_full_packet_number(self, quic_packet: ShortQuicPacket | LongQuicPacket) -> bytes:
+    def get_full_packet_number(
+        self, quic_packet: ShortQuicPacket | LongQuicPacket
+    ) -> bytes:
         if quic_packet.isserver:
-            largest_pkn = self.packet_number_server[PACKET_TYPE_MAP[quic_packet.packet_type]]
+            largest_pkn = self.packet_number_server[
+                PACKET_TYPE_MAP[quic_packet.packet_type]
+            ]
         else:
-            largest_pkn = self.packet_number_client[PACKET_TYPE_MAP[quic_packet.packet_type]]
+            largest_pkn = self.packet_number_client[
+                PACKET_TYPE_MAP[quic_packet.packet_type]
+            ]
 
         packet_number_int = int.from_bytes(quic_packet.packet_num, "big", signed=False)
 
         if packet_number_int > largest_pkn == 0:
             if quic_packet.isserver:
-                self.packet_number_server[PACKET_TYPE_MAP[quic_packet.packet_type]] = packet_number_int
+                self.packet_number_server[PACKET_TYPE_MAP[quic_packet.packet_type]] = (
+                    packet_number_int
+                )
             else:
-                self.packet_number_client[PACKET_TYPE_MAP[quic_packet.packet_type]] = packet_number_int
+                self.packet_number_client[PACKET_TYPE_MAP[quic_packet.packet_type]] = (
+                    packet_number_int
+                )
 
             return quic_packet.packet_num
 
@@ -385,7 +489,10 @@ class QuicSession:
 
         candidate_pkn = (expected_pkn & ~pkn_mask) | truncated_pkn
 
-        if candidate_pkn <= expected_pkn - pkn_hwindow and candidate_pkn < (1 << 62) - pkn_window:
+        if (
+            candidate_pkn <= expected_pkn - pkn_hwindow
+            and candidate_pkn < (1 << 62) - pkn_window
+        ):
             out_pkn = candidate_pkn + pkn_window
         elif candidate_pkn > expected_pkn + pkn_hwindow and candidate_pkn >= pkn_window:
             out_pkn = candidate_pkn - pkn_window
@@ -394,9 +501,13 @@ class QuicSession:
 
         if out_pkn > largest_pkn:
             if quic_packet.isserver:
-                self.packet_number_server[PACKET_TYPE_MAP[quic_packet.packet_type]] = out_pkn
+                self.packet_number_server[PACKET_TYPE_MAP[quic_packet.packet_type]] = (
+                    out_pkn
+                )
             else:
-                self.packet_number_client[PACKET_TYPE_MAP[quic_packet.packet_type]] = out_pkn
+                self.packet_number_client[PACKET_TYPE_MAP[quic_packet.packet_type]] = (
+                    out_pkn
+                )
 
         return int.to_bytes(out_pkn, 8, "big", signed=False)
 
@@ -439,23 +550,42 @@ class QuicSession:
             if bytes.fromhex(key.client_random) == client_random:
                 session_keys.append(key)
 
-        keys = dev_quic_keys(self.key_length, session_keys, self.hash_fun(), self.quic_version)
+        keys = dev_quic_keys(
+            self.key_length, session_keys, self.hash_fun(), self.quic_version
+        )
 
         self.keys.update(keys)
         try:
             self.decryptors["Handshake"] = QuicDecryptor(
-                [keys["server_handshake_key"], keys["server_handshake_iv"], keys["client_handshake_key"],
-                 keys["client_handshake_iv"]], self.cipher, early=False)
+                [
+                    keys["server_handshake_key"],
+                    keys["server_handshake_iv"],
+                    keys["client_handshake_key"],
+                    keys["client_handshake_iv"],
+                ],
+                self.cipher,
+                early=False,
+            )
         except:
             self.can_decrypt = False
             logging.error("Missing Key Material")
             return
 
         try:
-            self.decryptors["Application"] = [QuicDecryptor(
-                [keys["server_application_key"], keys["server_application_iv"], keys["client_application_key"],
-                 keys["client_application_iv"], keys["server_application_sec"], keys["client_application_sec"]],
-                self.cipher, early=False)]
+            self.decryptors["Application"] = [
+                QuicDecryptor(
+                    [
+                        keys["server_application_key"],
+                        keys["server_application_iv"],
+                        keys["client_application_key"],
+                        keys["client_application_iv"],
+                        keys["server_application_sec"],
+                        keys["client_application_sec"],
+                    ],
+                    self.cipher,
+                    early=False,
+                )
+            ]
         except:
             self.can_decrypt = False
             logging.error("Missing Key Material")
@@ -463,8 +593,10 @@ class QuicSession:
 
         try:
             self.decryptors["Early"] = QuicDecryptor(
-                [keys["client_early_key"],
-                 keys["client_early_iv"]], self.cipher, early=True)
+                [keys["client_early_key"], keys["client_early_iv"]],
+                self.cipher,
+                early=True,
+            )
             self.early_traffic_keys = True
             logging.info("Using Early Traffic Secrets")
         except:

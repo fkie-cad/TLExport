@@ -1,4 +1,5 @@
 import logging
+
 # suppress scapy warning message when importing the module
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 from scapy.packet import Raw
@@ -10,8 +11,19 @@ from math import floor
 
 
 class OutputBuilder:
-    def __init__(self, decrypted_records, server_ip, client_ip, server_port, client_port, server_mac_addr,
-                 client_mac_addr, portmap, ipv6, keep_original_ports: bool) -> None:
+    def __init__(
+        self,
+        decrypted_records,
+        server_ip,
+        client_ip,
+        server_port,
+        client_port,
+        server_mac_addr,
+        client_mac_addr,
+        portmap,
+        ipv6,
+        keep_original_ports: bool,
+    ) -> None:
 
         self.decrypted_records = decrypted_records
         self.server_ip = server_ip
@@ -30,9 +42,13 @@ class OutputBuilder:
         if keep_original_ports is False:
             if self.server_port in portmap.keys():
                 self.server_port = portmap[self.server_port]
-                print(f"[*] Writing decrypted session to new destination ports (orignal:new): {portmap}")
+                print(
+                    f"[*] Writing decrypted session to new destination ports (orignal:new): {portmap}"
+                )
             else:
-                print(f"[*] Writing decrypted session to new destination ports (orignal:new): {self.server_port}:{self.default_port}")
+                print(
+                    f"[*] Writing decrypted session to new destination ports (orignal:new): {self.server_port}:{self.default_port}"
+                )
                 self.server_port = self.default_port
 
     def build(self):
@@ -64,7 +80,7 @@ class OutputBuilder:
 
             decrypted = record[0]
             if decrypted is None:
-                decrypted = b'123345'
+                decrypted = b"123345"
             ts = []
             for packet in record[1].metadata:
                 ts.append(packet.timestamp)
@@ -79,27 +95,77 @@ class OutputBuilder:
     # timestamps for the TCP Handshake are equal to the timestamp of the first TLS-Record
     def build_ack_handshake(self):
         if not self.ipv6:
-            syn = Ether(src=self.client_mac_addr, dst=self.server_mac_addr) / IP(src=self.client_ip,
-                                                                                 dst=self.server_ip) / TCP(
-                dport=self.server_port, sport=self.client_port, flags='S', seq=0, ack=0)
-            syn_ack = Ether(src=self.server_mac_addr, dst=self.client_mac_addr) / IP(src=self.server_ip,
-                                                                                     dst=self.client_ip) / TCP(
-                dport=self.client_port, sport=self.server_port, flags='SA', seq=0, ack=1)
-            ack = Ether(src=self.client_mac_addr, dst=self.server_mac_addr) / IP(src=self.client_ip,
-                                                                                 dst=self.server_ip) / TCP(
-                dport=self.server_port, sport=self.client_port, flags='A', seq=1, ack=1)
+            syn = (
+                Ether(src=self.client_mac_addr, dst=self.server_mac_addr)
+                / IP(src=self.client_ip, dst=self.server_ip)
+                / TCP(
+                    dport=self.server_port,
+                    sport=self.client_port,
+                    flags="S",
+                    seq=0,
+                    ack=0,
+                )
+            )
+            syn_ack = (
+                Ether(src=self.server_mac_addr, dst=self.client_mac_addr)
+                / IP(src=self.server_ip, dst=self.client_ip)
+                / TCP(
+                    dport=self.client_port,
+                    sport=self.server_port,
+                    flags="SA",
+                    seq=0,
+                    ack=1,
+                )
+            )
+            ack = (
+                Ether(src=self.client_mac_addr, dst=self.server_mac_addr)
+                / IP(src=self.client_ip, dst=self.server_ip)
+                / TCP(
+                    dport=self.server_port,
+                    sport=self.client_port,
+                    flags="A",
+                    seq=1,
+                    ack=1,
+                )
+            )
         else:
-            syn = Ether(src=self.client_mac_addr, dst=self.server_mac_addr) / IPv6(src=self.client_ip,
-                                                                                 dst=self.server_ip) / TCP(
-                dport=self.server_port, sport=self.client_port, flags='S', seq=0, ack=0)
-            syn_ack = Ether(src=self.server_mac_addr, dst=self.client_mac_addr) / IPv6(src=self.server_ip,
-                                                                                     dst=self.client_ip) / TCP(
-                dport=self.client_port, sport=self.server_port, flags='SA', seq=0, ack=1)
-            ack = Ether(src=self.client_mac_addr, dst=self.server_mac_addr) / IPv6(src=self.client_ip,
-                                                                                 dst=self.server_ip) / TCP(
-                dport=self.server_port, sport=self.client_port, flags='A', seq=1, ack=1)
+            syn = (
+                Ether(src=self.client_mac_addr, dst=self.server_mac_addr)
+                / IPv6(src=self.client_ip, dst=self.server_ip)
+                / TCP(
+                    dport=self.server_port,
+                    sport=self.client_port,
+                    flags="S",
+                    seq=0,
+                    ack=0,
+                )
+            )
+            syn_ack = (
+                Ether(src=self.server_mac_addr, dst=self.client_mac_addr)
+                / IPv6(src=self.server_ip, dst=self.client_ip)
+                / TCP(
+                    dport=self.client_port,
+                    sport=self.server_port,
+                    flags="SA",
+                    seq=0,
+                    ack=1,
+                )
+            )
+            ack = (
+                Ether(src=self.client_mac_addr, dst=self.server_mac_addr)
+                / IPv6(src=self.client_ip, dst=self.server_ip)
+                / TCP(
+                    dport=self.server_port,
+                    sport=self.client_port,
+                    flags="A",
+                    seq=1,
+                    ack=1,
+                )
+            )
 
-        self.out.extend([(syn, self.ts_zero), (syn_ack, self.ts_zero), (ack, self.ts_zero)])
+        self.out.extend(
+            [(syn, self.ts_zero), (syn_ack, self.ts_zero), (ack, self.ts_zero)]
+        )
 
     def build_server_packet(self, decrypted, ts):
         record_len = len(decrypted)
@@ -108,32 +174,63 @@ class OutputBuilder:
         parts = []
         last_len = 0
         for i in range(0, packet_count - 1):
-            parts.append(decrypted[i * part_len: i * part_len + part_len])
+            parts.append(decrypted[i * part_len : i * part_len + part_len])
             last_len = i * part_len + part_len
 
         if last_len < record_len:
             parts.append(decrypted[last_len:])
         for i in range(0, len(parts)):
             if not self.ipv6:
-
-                packet = Ether(src=self.server_mac_addr, dst=self.client_mac_addr) / IP(src=self.server_ip,
-                                                                                        dst=self.client_ip) / TCP(
-                    dport=self.client_port, sport=self.server_port, flags='PA', seq=self.server_seq,
-                    ack=self.client_seq) / Raw(parts[i])
+                packet = (
+                    Ether(src=self.server_mac_addr, dst=self.client_mac_addr)
+                    / IP(src=self.server_ip, dst=self.client_ip)
+                    / TCP(
+                        dport=self.client_port,
+                        sport=self.server_port,
+                        flags="PA",
+                        seq=self.server_seq,
+                        ack=self.client_seq,
+                    )
+                    / Raw(parts[i])
+                )
                 self.server_seq += len(parts[i])
-                packet_ack = Ether(src=self.client_mac_addr, dst=self.server_mac_addr) / IP(src=self.client_ip,
-                                                                                            dst=self.server_ip) / TCP(
-                    dport=self.server_port, sport=self.client_port, flags='A', seq=self.client_seq, ack=self.server_seq)
+                packet_ack = (
+                    Ether(src=self.client_mac_addr, dst=self.server_mac_addr)
+                    / IP(src=self.client_ip, dst=self.server_ip)
+                    / TCP(
+                        dport=self.server_port,
+                        sport=self.client_port,
+                        flags="A",
+                        seq=self.client_seq,
+                        ack=self.server_seq,
+                    )
+                )
 
             else:
-                packet = Ether(src=self.server_mac_addr, dst=self.client_mac_addr) / IPv6(src=self.server_ip,
-                                                                                        dst=self.client_ip) / TCP(
-                    dport=self.client_port, sport=self.server_port, flags='PA', seq=self.server_seq,
-                    ack=self.client_seq) / Raw(parts[i])
+                packet = (
+                    Ether(src=self.server_mac_addr, dst=self.client_mac_addr)
+                    / IPv6(src=self.server_ip, dst=self.client_ip)
+                    / TCP(
+                        dport=self.client_port,
+                        sport=self.server_port,
+                        flags="PA",
+                        seq=self.server_seq,
+                        ack=self.client_seq,
+                    )
+                    / Raw(parts[i])
+                )
                 self.server_seq += len(parts[i])
-                packet_ack = Ether(src=self.client_mac_addr, dst=self.server_mac_addr) / IPv6(src=self.client_ip,
-                                                                                            dst=self.server_ip) / TCP(
-                    dport=self.server_port, sport=self.client_port, flags='A', seq=self.client_seq, ack=self.server_seq)
+                packet_ack = (
+                    Ether(src=self.client_mac_addr, dst=self.server_mac_addr)
+                    / IPv6(src=self.client_ip, dst=self.server_ip)
+                    / TCP(
+                        dport=self.server_port,
+                        sport=self.client_port,
+                        flags="A",
+                        seq=self.client_seq,
+                        ack=self.server_seq,
+                    )
+                )
 
             self.out.append((packet, ts[i]))
             self.out.append((packet_ack, ts[i]))
@@ -145,7 +242,7 @@ class OutputBuilder:
         parts = []
         last_len = 0
         for i in range(0, packet_count - 1):
-            parts.append(decrypted[i * part_len: i * part_len + part_len])
+            parts.append(decrypted[i * part_len : i * part_len + part_len])
             last_len = i * part_len + part_len
 
         if last_len < record_len:
@@ -153,25 +250,57 @@ class OutputBuilder:
 
         for i in range(0, len(parts)):
             if not self.ipv6:
-                packet = Ether(src=self.client_mac_addr, dst=self.server_mac_addr) / IP(src=self.client_ip,
-                                                                                        dst=self.server_ip) / TCP(
-                    dport=self.server_port, sport=self.client_port, flags='PA', seq=self.client_seq,
-                    ack=self.server_seq) / Raw(parts[i])
+                packet = (
+                    Ether(src=self.client_mac_addr, dst=self.server_mac_addr)
+                    / IP(src=self.client_ip, dst=self.server_ip)
+                    / TCP(
+                        dport=self.server_port,
+                        sport=self.client_port,
+                        flags="PA",
+                        seq=self.client_seq,
+                        ack=self.server_seq,
+                    )
+                    / Raw(parts[i])
+                )
                 self.client_seq += len(parts[i])
 
-                packet_ack = Ether(src=self.server_mac_addr, dst=self.client_mac_addr) / IP(src=self.server_ip,
-                                                                                            dst=self.client_ip) / TCP(
-                    dport=self.client_port, sport=self.server_port, flags='A', seq=self.server_seq, ack=self.client_seq)
+                packet_ack = (
+                    Ether(src=self.server_mac_addr, dst=self.client_mac_addr)
+                    / IP(src=self.server_ip, dst=self.client_ip)
+                    / TCP(
+                        dport=self.client_port,
+                        sport=self.server_port,
+                        flags="A",
+                        seq=self.server_seq,
+                        ack=self.client_seq,
+                    )
+                )
 
             else:
-                packet = Ether(src=self.client_mac_addr, dst=self.server_mac_addr) / IPv6(src=self.client_ip,
-                                                                                        dst=self.server_ip) / TCP(
-                    dport=self.server_port, sport=self.client_port, flags='PA', seq=self.client_seq,
-                    ack=self.server_seq) / Raw(parts[i])
+                packet = (
+                    Ether(src=self.client_mac_addr, dst=self.server_mac_addr)
+                    / IPv6(src=self.client_ip, dst=self.server_ip)
+                    / TCP(
+                        dport=self.server_port,
+                        sport=self.client_port,
+                        flags="PA",
+                        seq=self.client_seq,
+                        ack=self.server_seq,
+                    )
+                    / Raw(parts[i])
+                )
                 self.client_seq += len(parts[i])
 
-                packet_ack = Ether(src=self.server_mac_addr, dst=self.client_mac_addr) / IPv6(src=self.server_ip,
-                                                                                            dst=self.client_ip) / TCP(
-                    dport=self.client_port, sport=self.server_port, flags='A', seq=self.server_seq, ack=self.client_seq)
+                packet_ack = (
+                    Ether(src=self.server_mac_addr, dst=self.client_mac_addr)
+                    / IPv6(src=self.server_ip, dst=self.client_ip)
+                    / TCP(
+                        dport=self.client_port,
+                        sport=self.server_port,
+                        flags="A",
+                        seq=self.server_seq,
+                        ack=self.client_seq,
+                    )
+                )
             self.out.append((packet, ts[i]))
             self.out.append((packet_ack, ts[i]))

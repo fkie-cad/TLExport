@@ -1,18 +1,23 @@
-from tlexport.quic.quic_decode import get_variable_length_int_length, decode_variable_length_int
+from tlexport.quic.quic_decode import (
+    get_variable_length_int_length,
+    decode_variable_length_int,
+)
 from tlexport.quic.quic_packet import QuicPacket, ShortQuicPacket, LongQuicPacket
 
 
-def parse_frames(payload: bytes, src_packet: ShortQuicPacket | LongQuicPacket | QuicPacket):
+def parse_frames(
+    payload: bytes, src_packet: ShortQuicPacket | LongQuicPacket | QuicPacket
+):
 
     frames = []
     keys = frame_type.keys()
     while len(payload) != 0:
-        key = 0xff
+        key = 0xFF
         for k in keys:
             if payload[0] in k:
                 key = k
 
-        if key != 0xff:
+        if key != 0xFF:
             frame = frame_type.get(key)(payload, src_packet)
         else:
             frame = GenericFrame(payload, src_packet)
@@ -52,8 +57,8 @@ class GenericFrame(Frame):
         super().__init__(src_packet)
         self.length = 1
         self.length += get_variable_length_int_length(payload[1:2])
-        self.frame_length = decode_variable_length_int(payload[1: self.length])
-        self.data = payload[1 + self.length: 1 + self.length + self.frame_length]
+        self.frame_length = decode_variable_length_int(payload[1 : self.length])
+        self.data = payload[1 + self.length : 1 + self.length + self.frame_length]
 
         self.length = self.length + self.frame_length
 
@@ -73,43 +78,43 @@ class AckFrame(Frame):
         self.length = 1
 
         self.length += get_variable_length_int_length(payload[1:2])
-        self.largest_acknowledged = decode_variable_length_int(payload[1:self.length])
+        self.largest_acknowledged = decode_variable_length_int(payload[1 : self.length])
         index = self.length
 
-        self.length += get_variable_length_int_length(payload[index:index + 1])
-        self.ack_delay = decode_variable_length_int(payload[index:self.length])
+        self.length += get_variable_length_int_length(payload[index : index + 1])
+        self.ack_delay = decode_variable_length_int(payload[index : self.length])
         index = self.length
 
-        self.length += get_variable_length_int_length(payload[index:index + 1])
-        self.range_count = decode_variable_length_int(payload[index:self.length])
+        self.length += get_variable_length_int_length(payload[index : index + 1])
+        self.range_count = decode_variable_length_int(payload[index : self.length])
         index = self.length
 
-        self.length += get_variable_length_int_length(payload[index:index + 1])
-        self.first_ack_range = decode_variable_length_int(payload[index:self.length])
+        self.length += get_variable_length_int_length(payload[index : index + 1])
+        self.first_ack_range = decode_variable_length_int(payload[index : self.length])
         index = self.length
 
         self.ack_ranges = []
         for i in range(0, self.range_count):
-            self.length += get_variable_length_int_length(payload[index:index + 1])
-            gap = decode_variable_length_int(payload[index:self.length])
+            self.length += get_variable_length_int_length(payload[index : index + 1])
+            gap = decode_variable_length_int(payload[index : self.length])
             index = self.length
-            self.length += get_variable_length_int_length(payload[index:index + 1])
-            ack_range_length = decode_variable_length_int(payload[index:self.length])
+            self.length += get_variable_length_int_length(payload[index : index + 1])
+            ack_range_length = decode_variable_length_int(payload[index : self.length])
             index = self.length
 
             self.ack_ranges.append((gap, ack_range_length))
 
         if self.frame_type == 0x03:
-            self.length += get_variable_length_int_length(payload[index:index + 1])
-            self.ect_0_count = decode_variable_length_int(payload[index:self.length])
+            self.length += get_variable_length_int_length(payload[index : index + 1])
+            self.ect_0_count = decode_variable_length_int(payload[index : self.length])
             index = self.length
 
-            self.length += get_variable_length_int_length(payload[index:index + 1])
-            self.ect_1_count = decode_variable_length_int(payload[index:self.length])
+            self.length += get_variable_length_int_length(payload[index : index + 1])
+            self.ect_1_count = decode_variable_length_int(payload[index : self.length])
             index = self.length
 
-            self.length += get_variable_length_int_length(payload[index:index + 1])
-            self.ect_ce_count = decode_variable_length_int(payload[index:self.length])
+            self.length += get_variable_length_int_length(payload[index : index + 1])
+            self.ect_ce_count = decode_variable_length_int(payload[index : self.length])
 
 
 class ResetStreamFrame(Frame):
@@ -120,15 +125,17 @@ class ResetStreamFrame(Frame):
         self.length = 1
 
         self.length += get_variable_length_int_length(payload[1:2])
-        self.stream_id = decode_variable_length_int(payload[1:self.length])
+        self.stream_id = decode_variable_length_int(payload[1 : self.length])
         index = self.length
 
-        self.length += get_variable_length_int_length(payload[index:index + 1])
-        self.application_protocol_error_code = decode_variable_length_int(payload[index:self.length])
+        self.length += get_variable_length_int_length(payload[index : index + 1])
+        self.application_protocol_error_code = decode_variable_length_int(
+            payload[index : self.length]
+        )
         index = self.length
 
-        self.length += get_variable_length_int_length(payload[index:index + 1])
-        self.final_size = decode_variable_length_int(payload[index:self.length])
+        self.length += get_variable_length_int_length(payload[index : index + 1])
+        self.final_size = decode_variable_length_int(payload[index : self.length])
 
 
 class StopSendingFrame(Frame):
@@ -139,11 +146,13 @@ class StopSendingFrame(Frame):
         self.length = 1
 
         self.length += get_variable_length_int_length(payload[1:2])
-        self.stream_id = decode_variable_length_int(payload[1:self.length])
+        self.stream_id = decode_variable_length_int(payload[1 : self.length])
         index = self.length
 
-        self.length += get_variable_length_int_length(payload[index:index + 1])
-        self.application_protocol_error_code = decode_variable_length_int(payload[index:self.length])
+        self.length += get_variable_length_int_length(payload[index : index + 1])
+        self.application_protocol_error_code = decode_variable_length_int(
+            payload[index : self.length]
+        )
 
 
 class CryptoFrame(Frame):
@@ -154,15 +163,15 @@ class CryptoFrame(Frame):
         self.length = 1
 
         self.length += get_variable_length_int_length(payload[1:2])
-        self.offset = decode_variable_length_int(payload[1:self.length])
+        self.offset = decode_variable_length_int(payload[1 : self.length])
         index = self.length
 
-        self.length += get_variable_length_int_length(payload[index:index + 1])
-        self.crypto_length = decode_variable_length_int(payload[index:self.length])
+        self.length += get_variable_length_int_length(payload[index : index + 1])
+        self.crypto_length = decode_variable_length_int(payload[index : self.length])
         index = self.length
 
         self.length += self.crypto_length
-        self.crypto = payload[index: self.length]
+        self.crypto = payload[index : self.length]
 
 
 class NewTokenFrame(Frame):
@@ -173,11 +182,11 @@ class NewTokenFrame(Frame):
         self.length = 1
 
         self.length += get_variable_length_int_length(payload[1:2])
-        self.token_length = decode_variable_length_int(payload[1:self.length])
+        self.token_length = decode_variable_length_int(payload[1 : self.length])
         index = self.length
 
         self.length += self.token_length
-        self.token = payload[index: self.length]
+        self.token = payload[index : self.length]
 
 
 class StreamFrame(Frame):
@@ -190,7 +199,7 @@ class StreamFrame(Frame):
 
         self.length = 1
         self.length += get_variable_length_int_length(payload[1:2])
-        self.stream_id = decode_variable_length_int(payload[1:self.length])
+        self.stream_id = decode_variable_length_int(payload[1 : self.length])
 
         self.server_initiated = bool(self.stream_id & 1)
         self.stream_unidirectional = bool((self.stream_id >> 1) & 1)
@@ -200,22 +209,22 @@ class StreamFrame(Frame):
         self.stream_data = None
 
         if self.off:
-            self.length += get_variable_length_int_length(payload[index:index + 1])
-            self.offset = decode_variable_length_int(payload[index:self.length])
+            self.length += get_variable_length_int_length(payload[index : index + 1])
+            self.offset = decode_variable_length_int(payload[index : self.length])
             index = self.length
         else:
             self.offset = 0
 
         if self.len:
-            self.length += get_variable_length_int_length(payload[index:index + 1])
-            self.data_length = decode_variable_length_int(payload[index:self.length])
+            self.length += get_variable_length_int_length(payload[index : index + 1])
+            self.data_length = decode_variable_length_int(payload[index : self.length])
             index = self.length
             self.length += self.data_length
         else:
             self.length = len(payload)
             self.data_length = len(payload) - index
 
-        self.stream_data = payload[index:self.length]
+        self.stream_data = payload[index : self.length]
 
 
 class MaxDataFrame(Frame):
@@ -225,7 +234,7 @@ class MaxDataFrame(Frame):
         super().__init__(src_packet)
         self.length = 1
         self.length += get_variable_length_int_length(payload[1:2])
-        self.maximum_data = decode_variable_length_int(payload[1:self.length])
+        self.maximum_data = decode_variable_length_int(payload[1 : self.length])
 
 
 class MaxStreamDataFrame(Frame):
@@ -235,11 +244,13 @@ class MaxStreamDataFrame(Frame):
         super().__init__(src_packet)
         self.length = 1
         self.length += get_variable_length_int_length(payload[1:2])
-        self.stream_id = decode_variable_length_int(payload[1:self.length])
+        self.stream_id = decode_variable_length_int(payload[1 : self.length])
         index = self.length
 
-        self.length += get_variable_length_int_length(payload[index: index + 1])
-        self.maximum_stream_data = decode_variable_length_int(payload[index: self.length])
+        self.length += get_variable_length_int_length(payload[index : index + 1])
+        self.maximum_stream_data = decode_variable_length_int(
+            payload[index : self.length]
+        )
 
 
 class MaxStreamsFrame(Frame):
@@ -249,7 +260,7 @@ class MaxStreamsFrame(Frame):
 
         self.length = 1
         self.length += get_variable_length_int_length(payload[1:2])
-        self.maximum_streams = decode_variable_length_int(payload[1:self.length])
+        self.maximum_streams = decode_variable_length_int(payload[1 : self.length])
 
 
 class DataBlockedFrame(Frame):
@@ -259,7 +270,7 @@ class DataBlockedFrame(Frame):
         super().__init__(src_packet)
         self.length = 1
         self.length += get_variable_length_int_length(payload[1:2])
-        self.maximum_data = decode_variable_length_int(payload[1:self.length])
+        self.maximum_data = decode_variable_length_int(payload[1 : self.length])
 
 
 class StreamDataBlockedFrame(Frame):
@@ -269,11 +280,13 @@ class StreamDataBlockedFrame(Frame):
         super().__init__(src_packet)
         self.length = 1
         self.length += get_variable_length_int_length(payload[1:2])
-        self.stream_id = decode_variable_length_int(payload[1:self.length])
+        self.stream_id = decode_variable_length_int(payload[1 : self.length])
         index = self.length
 
-        self.length += get_variable_length_int_length(payload[index: index + 1])
-        self.maximum_stream_data = decode_variable_length_int(payload[index: self.length])
+        self.length += get_variable_length_int_length(payload[index : index + 1])
+        self.maximum_stream_data = decode_variable_length_int(
+            payload[index : self.length]
+        )
 
 
 class StreamsBlockedFrame(Frame):
@@ -283,7 +296,7 @@ class StreamsBlockedFrame(Frame):
 
         self.length = 1
         self.length += get_variable_length_int_length(payload[1:2])
-        self.maximum_streams = decode_variable_length_int(payload[1:self.length])
+        self.maximum_streams = decode_variable_length_int(payload[1 : self.length])
 
 
 class NewConnectionIdFrame(Frame):
@@ -293,19 +306,21 @@ class NewConnectionIdFrame(Frame):
         super().__init__(src_packet)
         self.length = 1
         self.length += get_variable_length_int_length(payload[1:2])
-        self.sequence_number = decode_variable_length_int(payload[1:self.length])
+        self.sequence_number = decode_variable_length_int(payload[1 : self.length])
         index = self.length
 
-        self.length += get_variable_length_int_length(payload[index: index + 1])
-        self.retire_prior_to = decode_variable_length_int(payload[index: self.length])
+        self.length += get_variable_length_int_length(payload[index : index + 1])
+        self.retire_prior_to = decode_variable_length_int(payload[index : self.length])
 
         self.connection_id_length = payload[self.length]
         self.length += 1
 
-        self.connection_id = payload[self.length: self.length + self.connection_id_length]
+        self.connection_id = payload[
+            self.length : self.length + self.connection_id_length
+        ]
         self.length += self.connection_id_length
 
-        self.stateless_reset_token = payload[self.length: self.length + 16]
+        self.stateless_reset_token = payload[self.length : self.length + 16]
         self.length += 16
 
 
@@ -316,11 +331,11 @@ class RetireConnectionIdFrame(Frame):
         super().__init__(src_packet)
         self.length = 1
         self.length += get_variable_length_int_length(payload[1:2])
-        self.sequence_number = decode_variable_length_int(payload[1:self.length])
+        self.sequence_number = decode_variable_length_int(payload[1 : self.length])
 
 
 class PathChallengeFrame(Frame):
-    frame_type = 0x1a
+    frame_type = 0x1A
     length = 9
 
     def __init__(self, payload, src_packet):
@@ -329,7 +344,7 @@ class PathChallengeFrame(Frame):
 
 
 class PathResponseFrame(Frame):
-    frame_type = 0x1b
+    frame_type = 0x1B
     length = 9
 
     def __init__(self, payload, src_packet):
@@ -344,20 +359,24 @@ class ConnectionCloseFrame(Frame):
 
         self.length = 1
         self.length += get_variable_length_int_length(payload[1:2])
-        self.error_code = decode_variable_length_int(payload[1:self.length])
+        self.error_code = decode_variable_length_int(payload[1 : self.length])
         index = self.length
 
-        if self.frame_type == 0x1c:
-            self.length += get_variable_length_int_length(payload[index:index + 1])
-            self.close_frame_type = decode_variable_length_int(payload[index:self.length])
+        if self.frame_type == 0x1C:
+            self.length += get_variable_length_int_length(payload[index : index + 1])
+            self.close_frame_type = decode_variable_length_int(
+                payload[index : self.length]
+            )
             index = self.length
 
-        self.length += get_variable_length_int_length(payload[index: index + 1])
-        self.reason_phrase_length = decode_variable_length_int(payload[index: self.length])
+        self.length += get_variable_length_int_length(payload[index : index + 1])
+        self.reason_phrase_length = decode_variable_length_int(
+            payload[index : self.length]
+        )
         index = self.length
 
         self.length += self.reason_phrase_length
-        self.reason_phrase = payload[index: self.length]
+        self.reason_phrase = payload[index : self.length]
 
 
 class DatagramFrame(Frame):
@@ -369,8 +388,10 @@ class DatagramFrame(Frame):
 
         if self.len_bit:
             var_int_length = get_variable_length_int_length(payload[1:2])
-            payload_length = decode_variable_length_int(payload[1:1 + var_int_length])
-            self.payload = payload[1 + var_int_length: 1 + var_int_length + payload_length]
+            payload_length = decode_variable_length_int(payload[1 : 1 + var_int_length])
+            self.payload = payload[
+                1 + var_int_length : 1 + var_int_length + payload_length
+            ]
 
             self.length = 1 + var_int_length + payload_length
         else:
@@ -379,15 +400,17 @@ class DatagramFrame(Frame):
 
 
 class HandshakeDoneFrame(Frame):
-    frame_type = 0x1e
+    frame_type = 0x1E
     length = 1
 
     def __init__(self, _payload, src_packet):
         super().__init__(src_packet)
 
 
-class PseudoVersionNegotiationFrame(Frame): # This is not an official Frametype proposed in the RFCs!
-    frame_type = 0xfe
+class PseudoVersionNegotiationFrame(
+    Frame
+):  # This is not an official Frametype proposed in the RFCs!
+    frame_type = 0xFE
 
     def __init__(self, payload, src_packet):
         super().__init__(src_packet)
@@ -403,7 +426,7 @@ frame_type = {
     (0x05,): StopSendingFrame,
     (0x06,): CryptoFrame,
     (0x07,): NewTokenFrame,
-    (0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f): StreamFrame,
+    (0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F): StreamFrame,
     (0x10,): MaxDataFrame,
     (0x11,): MaxStreamDataFrame,
     (0x12, 0x13): MaxStreamsFrame,
@@ -412,9 +435,9 @@ frame_type = {
     (0x16, 0x17): StreamsBlockedFrame,
     (0x18,): NewConnectionIdFrame,
     (0x19,): RetireConnectionIdFrame,
-    (0x1a,): PathChallengeFrame,
-    (0x1b,): PathResponseFrame,
-    (0x1c, 0x1d): ConnectionCloseFrame,
-    (0x1e,): HandshakeDoneFrame,
-    (0x30, 0x31): DatagramFrame
+    (0x1A,): PathChallengeFrame,
+    (0x1B,): PathResponseFrame,
+    (0x1C, 0x1D): ConnectionCloseFrame,
+    (0x1E,): HandshakeDoneFrame,
+    (0x30, 0x31): DatagramFrame,
 }

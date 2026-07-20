@@ -8,8 +8,16 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDFExpand, HKDF
 from cryptography.hazmat.decrepit.ciphers import algorithms as decrepit_algorithms
 
 
-def dev_ssl_30_keys(master_secret, server_random, client_random, key_length, mac_length, key_block_length, cipher_algo,
-                    use_aead):
+def dev_ssl_30_keys(
+    master_secret,
+    server_random,
+    client_random,
+    key_length,
+    mac_length,
+    key_block_length,
+    cipher_algo,
+    use_aead,
+):
     iv_length = 4
     if cipher_algo in [algorithms.AES, decrepit_algorithms.Camellia]:
         iv_length = 16
@@ -19,16 +27,27 @@ def dev_ssl_30_keys(master_secret, server_random, client_random, key_length, mac
     if use_aead:
         mac_length = 0
 
-    key_block = prf_ssl_30(master_secret, client_random, server_random, key_block_length + 2 * iv_length, 0)
+    key_block = prf_ssl_30(
+        master_secret, client_random, server_random, key_block_length + 2 * iv_length, 0
+    )
 
     keys = {
-        "client_write_MAC_secret": key_block[0: mac_length],
-        "server_write_MAC_secret": key_block[mac_length: 2 * mac_length],
-        "client_write_key": key_block[2 * mac_length: 2 * mac_length + key_length],
-        "server_write_key": key_block[2 * mac_length + key_length: 2 * mac_length + 2 * key_length],
-        "client_write_IV": key_block[2 * mac_length + 2 * key_length: 2 * mac_length + 2 * key_length + iv_length],
+        "client_write_MAC_secret": key_block[0:mac_length],
+        "server_write_MAC_secret": key_block[mac_length : 2 * mac_length],
+        "client_write_key": key_block[2 * mac_length : 2 * mac_length + key_length],
+        "server_write_key": key_block[
+            2 * mac_length + key_length : 2 * mac_length + 2 * key_length
+        ],
+        "client_write_IV": key_block[
+            2 * mac_length + 2 * key_length : 2 * mac_length
+            + 2 * key_length
+            + iv_length
+        ],
         "server_write_IV": key_block[
-                           2 * mac_length + 2 * key_length + iv_length: 2 * mac_length + 2 * key_length + 2 * iv_length]
+            2 * mac_length + 2 * key_length + iv_length : 2 * mac_length
+            + 2 * key_length
+            + 2 * iv_length
+        ],
     }
 
     logging_string = "Session Keys: "
@@ -40,8 +59,16 @@ def dev_ssl_30_keys(master_secret, server_random, client_random, key_length, mac
     return keys
 
 
-def dev_tls_10_11_keys(master_secret, server_random, client_random, key_length, mac_length, key_block_length,
-                       cipher_algo, use_aead):
+def dev_tls_10_11_keys(
+    master_secret,
+    server_random,
+    client_random,
+    key_length,
+    mac_length,
+    key_block_length,
+    cipher_algo,
+    use_aead,
+):
     iv_length = 4
     if cipher_algo in [algorithms.AES, decrepit_algorithms.Camellia]:
         iv_length = 16
@@ -51,18 +78,32 @@ def dev_tls_10_11_keys(master_secret, server_random, client_random, key_length, 
     if use_aead:
         mac_length = 0
 
-    key_block = prf_tls_10_11(master_secret, client_random, server_random, b"key expansion",
-                              key_block_length + 2 * iv_length, 0)
+    key_block = prf_tls_10_11(
+        master_secret,
+        client_random,
+        server_random,
+        b"key expansion",
+        key_block_length + 2 * iv_length,
+        0,
+    )
 
     keys = {
-        "client_write_MAC_secret": key_block[0: mac_length],
-        "server_write_MAC_secret": key_block[mac_length: mac_length * 2],
-        "client_write_key": key_block[mac_length * 2: mac_length * 2 + key_length],
-        "server_write_key": key_block[mac_length * 2 + key_length: mac_length * 2 + key_length * 2],
-        "client_write_IV": key_block[mac_length * 2 + key_length * 2: mac_length * 2 + key_length * 2 + iv_length],
+        "client_write_MAC_secret": key_block[0:mac_length],
+        "server_write_MAC_secret": key_block[mac_length : mac_length * 2],
+        "client_write_key": key_block[mac_length * 2 : mac_length * 2 + key_length],
+        "server_write_key": key_block[
+            mac_length * 2 + key_length : mac_length * 2 + key_length * 2
+        ],
+        "client_write_IV": key_block[
+            mac_length * 2 + key_length * 2 : mac_length * 2
+            + key_length * 2
+            + iv_length
+        ],
         "server_write_IV": key_block[
-                           mac_length * 2 + key_length * 2 + iv_length: mac_length * 2 + key_length * 2 + iv_length * 2]
-
+            mac_length * 2 + key_length * 2 + iv_length : mac_length * 2
+            + key_length * 2
+            + iv_length * 2
+        ],
     }
 
     logging_string = ""
@@ -74,8 +115,17 @@ def dev_tls_10_11_keys(master_secret, server_random, client_random, key_length, 
     return keys
 
 
-def dev_tls_12_keys(master_secret, client_random, server_random, key_length, mac_length, key_block_length, cipher_algo,
-                    use_aead, mac_function):
+def dev_tls_12_keys(
+    master_secret,
+    client_random,
+    server_random,
+    key_length,
+    mac_length,
+    key_block_length,
+    cipher_algo,
+    use_aead,
+    mac_function,
+):
     iv_length = 4
     if cipher_algo == ChaCha20Poly1305:
         iv_length = 12
@@ -88,18 +138,32 @@ def dev_tls_12_keys(master_secret, client_random, server_random, key_length, mac
     if use_aead:
         mac_length = 0
 
-    key_block = prf_tls_12(master_secret, client_random, server_random, b'key expansion',
-                           key_block_length + 2 * iv_length, mac_function)
+    key_block = prf_tls_12(
+        master_secret,
+        client_random,
+        server_random,
+        b"key expansion",
+        key_block_length + 2 * iv_length,
+        mac_function,
+    )
 
     keys = {
-        "client_write_MAC_secret": key_block[0: mac_length],
-        "server_write_MAC_secret": key_block[mac_length: mac_length * 2],
-        "client_write_key": key_block[mac_length * 2: mac_length * 2 + key_length],
-        "server_write_key": key_block[mac_length * 2 + key_length: mac_length * 2 + key_length * 2],
-        "client_write_IV": key_block[mac_length * 2 + key_length * 2: mac_length * 2 + key_length * 2 + iv_length],
+        "client_write_MAC_secret": key_block[0:mac_length],
+        "server_write_MAC_secret": key_block[mac_length : mac_length * 2],
+        "client_write_key": key_block[mac_length * 2 : mac_length * 2 + key_length],
+        "server_write_key": key_block[
+            mac_length * 2 + key_length : mac_length * 2 + key_length * 2
+        ],
+        "client_write_IV": key_block[
+            mac_length * 2 + key_length * 2 : mac_length * 2
+            + key_length * 2
+            + iv_length
+        ],
         "server_write_IV": key_block[
-                           mac_length * 2 + key_length * 2 + iv_length: mac_length * 2 + key_length * 2 + 2 * iv_length]
-
+            mac_length * 2 + key_length * 2 + iv_length : mac_length * 2
+            + key_length * 2
+            + 2 * iv_length
+        ],
     }
 
     logging_string = ""
@@ -113,17 +177,17 @@ def dev_tls_12_keys(master_secret, client_random, server_random, key_length, mac
 
 def dev_tls_13_keys(secret_list, key_length, hash_fun: hashes.HashAlgorithm):
     # key length dependent on algorithm iv size always 12
-    key_length = int(key_length).to_bytes(2, 'big')
-    iv_length = b'\x00\x0c'
+    key_length = int(key_length).to_bytes(2, "big")
+    iv_length = b"\x00\x0c"
 
-    key_label = b'tls13 key'
-    iv_label = b'tls13 iv'
+    key_label = b"tls13 key"
+    iv_label = b"tls13 iv"
 
-    iv_label_len = b'\x08'
-    key_label_len = b'\x09'
+    iv_label_len = b"\x08"
+    key_label_len = b"\x09"
 
-    iv_info = iv_length + iv_label_len + iv_label + b'\x00'
-    key_info = key_length + key_label_len + key_label + b'\x00'
+    iv_info = iv_length + iv_label_len + iv_label + b"\x00"
+    key_info = key_length + key_label_len + key_label + b"\x00"
 
     # In case handshake secrets are not available
     client_handshake_key = None
@@ -133,24 +197,36 @@ def dev_tls_13_keys(secret_list, key_length, hash_fun: hashes.HashAlgorithm):
 
     for secret in secret_list:
         if secret.label == "CLIENT_HANDSHAKE_TRAFFIC_SECRET":
-            client_handshake_key = HKDFExpand(hash_fun, int.from_bytes(key_length, 'big'), key_info).derive(
-                bytes.fromhex(secret.value))
-            client_handshake_iv = HKDFExpand(hash_fun, 12, iv_info).derive(bytes.fromhex(secret.value))
+            client_handshake_key = HKDFExpand(
+                hash_fun, int.from_bytes(key_length, "big"), key_info
+            ).derive(bytes.fromhex(secret.value))
+            client_handshake_iv = HKDFExpand(hash_fun, 12, iv_info).derive(
+                bytes.fromhex(secret.value)
+            )
 
         elif secret.label == "SERVER_HANDSHAKE_TRAFFIC_SECRET":
-            server_handshake_key = HKDFExpand(hash_fun, int.from_bytes(key_length, 'big'), key_info).derive(
-                bytes.fromhex(secret.value))
-            server_handshake_iv = HKDFExpand(hash_fun, 12, iv_info).derive(bytes.fromhex(secret.value))
+            server_handshake_key = HKDFExpand(
+                hash_fun, int.from_bytes(key_length, "big"), key_info
+            ).derive(bytes.fromhex(secret.value))
+            server_handshake_iv = HKDFExpand(hash_fun, 12, iv_info).derive(
+                bytes.fromhex(secret.value)
+            )
 
         elif secret.label == "CLIENT_TRAFFIC_SECRET_0":
-            client_application_key = HKDFExpand(hash_fun, int.from_bytes(key_length, 'big'), key_info).derive(
-                bytes.fromhex(secret.value))
-            client_application_iv = HKDFExpand(hash_fun, 12, iv_info).derive(bytes.fromhex(secret.value))
+            client_application_key = HKDFExpand(
+                hash_fun, int.from_bytes(key_length, "big"), key_info
+            ).derive(bytes.fromhex(secret.value))
+            client_application_iv = HKDFExpand(hash_fun, 12, iv_info).derive(
+                bytes.fromhex(secret.value)
+            )
 
         elif secret.label == "SERVER_TRAFFIC_SECRET_0":
-            server_application_key = HKDFExpand(hash_fun, int.from_bytes(key_length, 'big'), key_info).derive(
-                bytes.fromhex(secret.value))
-            server_application_iv = HKDFExpand(hash_fun, 12, iv_info).derive(bytes.fromhex(secret.value))
+            server_application_key = HKDFExpand(
+                hash_fun, int.from_bytes(key_length, "big"), key_info
+            ).derive(bytes.fromhex(secret.value))
+            server_application_iv = HKDFExpand(hash_fun, 12, iv_info).derive(
+                bytes.fromhex(secret.value)
+            )
 
     keys = {
         "client_handshake_traffic_secret": client_handshake_key,
@@ -160,7 +236,7 @@ def dev_tls_13_keys(secret_list, key_length, hash_fun: hashes.HashAlgorithm):
         "client_handshake_iv": client_handshake_iv,
         "server_handshake_iv": server_handshake_iv,
         "client_application_iv": client_application_iv,
-        "server_application_iv": server_application_iv
+        "server_application_iv": server_application_iv,
     }
 
     logging_string = ""
@@ -180,13 +256,15 @@ def gen_master_secret_ssl_30(pm_secret, client_random, server_random):
 
 
 def gen_master_secret_tls_10_11(pm_secret, client_random, server_random):
-    master_secret = prf_tls_10_11(pm_secret, client_random, server_random, b'master secret', 48, 1)
+    master_secret = prf_tls_10_11(
+        pm_secret, client_random, server_random, b"master secret", 48, 1
+    )
     logging.info(f"Master Secret: {master_secret}")
     return master_secret
 
 
 def gen_master_secret_tls_12(pm_secret, client_random, server_random):
-    seed = b'master secret' + client_random + server_random
+    seed = b"master secret" + client_random + server_random
 
     a0 = seed
 
@@ -213,17 +291,27 @@ def gen_master_secret_tls_12(pm_secret, client_random, server_random):
 
 
 def prf_ssl_30(secret, client_random, server_random, length, non_key):
-    key_block = b''
-    sec_bits = 'ABCDEFGHIJ'
+    key_block = b""
+    sec_bits = "ABCDEFGHIJ"
     counter = 1
 
     while len(key_block) < length:
         md5 = hashes.Hash(hashes.MD5())
         sha1 = hashes.Hash(hashes.SHA1())
         if non_key:
-            sha1.update(bytes(counter * sec_bits[counter - 1], 'utf-8') + secret + client_random + server_random)
+            sha1.update(
+                bytes(counter * sec_bits[counter - 1], "utf-8")
+                + secret
+                + client_random
+                + server_random
+            )
         else:
-            sha1.update(bytes(counter * sec_bits[counter - 1], 'utf-8') + secret + server_random + client_random)
+            sha1.update(
+                bytes(counter * sec_bits[counter - 1], "utf-8")
+                + secret
+                + server_random
+                + client_random
+            )
 
         a = sha1.finalize()
         md5.update(secret + a)
@@ -247,7 +335,7 @@ def prf_tls_10_11(secret, client_random, server_random, label, length, non_key):
 
     a0 = seed
 
-    p_md5 = b''
+    p_md5 = b""
     md_5_count = 0
 
     while len(p_md5) < length:
@@ -262,7 +350,7 @@ def prf_tls_10_11(secret, client_random, server_random, label, length, non_key):
         a0 = a1
 
     a0 = seed
-    p_sha1 = b''
+    p_sha1 = b""
     sha_1_count = 0
     while len(p_sha1) < length:
         sha_1_count += 1
@@ -289,7 +377,7 @@ def prf_tls_12(secret, client_random, server_random, label, length, mac_function
     seed = label + server_random + client_random
 
     a0 = seed
-    secret_block = b''
+    secret_block = b""
 
     while len(secret_block) < length:
         h = hmac.HMAC(secret, mac())

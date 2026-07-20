@@ -19,7 +19,14 @@ class QuicHeaderType(Enum):
 
 
 class QuicPacket:
-    def __init__(self, header_type: QuicHeaderType, packet_type: QuicPacketType, isserver: bool, first_byte: bytes, ts: int):
+    def __init__(
+        self,
+        header_type: QuicHeaderType,
+        packet_type: QuicPacketType,
+        isserver: bool,
+        first_byte: bytes,
+        ts: int,
+    ):
         self.header_type = header_type
         self.packet_type = packet_type
         self.isserver = isserver
@@ -28,11 +35,28 @@ class QuicPacket:
 
 
 class LongQuicPacket(QuicPacket):
-    def __init__(self, packet_type: QuicPacketType, version: bytes, dcid_len: bytes, dcid: bytes, scid_len: bytes,
-                 scid: bytes, first_byte: bytes, ts: float,
-                 packet_len: bytes = None, packet_len_bytes: bytes = None, packet_num: bytes = None, payload: bytes = None, token_len: int = None,
-                 token_len_bytes: bytes = None, token: bytes = None,
-                 retry_token: bytes = None, retry_integ_tag: bytes = None, isserver: bool = False, supported_version: bytes = None):
+    def __init__(
+        self,
+        packet_type: QuicPacketType,
+        version: bytes,
+        dcid_len: bytes,
+        dcid: bytes,
+        scid_len: bytes,
+        scid: bytes,
+        first_byte: bytes,
+        ts: float,
+        packet_len: bytes = None,
+        packet_len_bytes: bytes = None,
+        packet_num: bytes = None,
+        payload: bytes = None,
+        token_len: int = None,
+        token_len_bytes: bytes = None,
+        token: bytes = None,
+        retry_token: bytes = None,
+        retry_integ_tag: bytes = None,
+        isserver: bool = False,
+        supported_version: bytes = None,
+    ):
 
         super().__init__(QuicHeaderType.LONG, packet_type, isserver, first_byte, ts)
         self.version = version
@@ -51,7 +75,9 @@ class LongQuicPacket(QuicPacket):
                 self.packet_num = packet_num
                 self.payload = payload
 
-            case QuicPacketType.HANDSHAKE | QuicPacketType.RTT_O:  # handshake and RTT-0 have same structure
+            case (
+                QuicPacketType.HANDSHAKE | QuicPacketType.RTT_O
+            ):  # handshake and RTT-0 have same structure
                 self.packet_len = packet_len
                 self.packet_num = packet_num
                 self.packet_len_bytes = packet_len_bytes
@@ -66,10 +92,18 @@ class LongQuicPacket(QuicPacket):
 
 
 class ShortQuicPacket(QuicPacket):
-
     # init for 1-RTT Packet
-    def __init__(self, packet_type: QuicPacketType, key_phase: int, dcid: bytes, packet_num: int, payload: bytes,
-                 isserver: bool, first_byte: bytes, ts: float):
+    def __init__(
+        self,
+        packet_type: QuicPacketType,
+        key_phase: int,
+        dcid: bytes,
+        packet_num: int,
+        payload: bytes,
+        isserver: bool,
+        first_byte: bytes,
+        ts: float,
+    ):
         super().__init__(QuicHeaderType.SHORT, packet_type, isserver, first_byte, ts)
         self.key_phase = key_phase
         self.dcid = dcid

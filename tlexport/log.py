@@ -1,8 +1,9 @@
 import logging
 
+
 class CustomFormatter(logging.Formatter):
     """Custom logging formatter to add colors and custom prefixes, with dynamic format based on log level."""
-    
+
     # Define prefix, color, and format for each log level
     FORMAT = {
         logging.DEBUG: "\033[96m[DEBUG] %(filename)s : %(message)s\033[0m",  # Cyan for DEBUG, including file name
@@ -10,9 +11,11 @@ class CustomFormatter(logging.Formatter):
         logging.WARNING: "\033[93m[W] %(message)s\033[0m",  # Orange for WARNING
         logging.ERROR: "\033[91m[-] %(message)s\033[0m",  # Red for ERROR
     }
-    
+
     def format(self, record):
-        self._style._fmt = self.FORMAT.get(record.levelno, self.FORMAT[logging.ERROR])  # Default to ERROR format
+        self._style._fmt = self.FORMAT.get(
+            record.levelno, self.FORMAT[logging.ERROR]
+        )  # Default to ERROR format
         return logging.Formatter.format(self, record)
 
 

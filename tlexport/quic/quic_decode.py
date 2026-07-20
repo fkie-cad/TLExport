@@ -6,7 +6,7 @@ def decode_variable_length_int(variable_integer: bytes) -> int:
     prefix = v >> 6
     length = 1 << prefix
 
-    v = v & 0x3f
+    v = v & 0x3F
     for i in range(1, length):
         v = (v << 8) + variable_integer[i]
 

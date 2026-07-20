@@ -15,7 +15,9 @@ class QuicDecryptor:
             self.client_bulk_cipher = bulk_cipher(self.client_key)
 
     # associated data: Quic Header from first byte up to and including the unprotected Packet Number
-    def decrypt(self, ciphertext: bytes, packet_number, associated_data: bytes, isserver: bool) -> bytes:
+    def decrypt(
+        self, ciphertext: bytes, packet_number, associated_data: bytes, isserver: bool
+    ) -> bytes:
         if isserver:
             decryptor = self.server_bulk_cipher
             iv = self.server_iv

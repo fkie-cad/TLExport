@@ -19,11 +19,11 @@ from .quic.quic_session import QuicSession
 from .quic.quic_decode import QuicVersion
 
 
-
 server_ports = [443, 44330]
 keylog = []
 sessions = []
 quic_sessions = []
+
 
 class MapPortsAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
@@ -33,42 +33,94 @@ class MapPortsAction(argparse.Action):
         else:
             # -m used without parameters, use default value
             setattr(namespace, self.dest, ["443:8080"])
-        setattr(namespace, 'keep_original_ports', keep_original_ports)
+        setattr(namespace, "keep_original_ports", keep_original_ports)
 
 
 def arg_parser_init():
-    parser = argparse.ArgumentParser(description="TLExport - GENERATING DECRYPTED TLS PCAPS")
+    parser = argparse.ArgumentParser(
+        description="TLExport - GENERATING DECRYPTED TLS PCAPS"
+    )
 
-    parser.add_argument("-p", "--serverports", help="additional ports to test for TLS-Connections", nargs="+",
-                        default=[443])
-    parser.add_argument("-i", "--infile", help="path of input file",
-                        default="tlexport/pcaps_und_keylogs/quic_pcaps/all_ciphersuites.pcapng")
-    parser.add_argument("-o", "--outfile", help="path of output file", default="out.pcapng")
-    parser.add_argument("-s", "--sslkeylog", help="path to sslkeylogfile",
-                        default="tlexport/pcaps_und_keylogs/quic_pcaps/all_ciphersuites.log")
+    parser.add_argument(
+        "-p",
+        "--serverports",
+        help="additional ports to test for TLS-Connections",
+        nargs="+",
+        default=[443],
+    )
+    parser.add_argument(
+        "-i",
+        "--infile",
+        help="path of input file",
+        default="tlexport/pcaps_und_keylogs/quic_pcaps/all_ciphersuites.pcapng",
+    )
+    parser.add_argument(
+        "-o", "--outfile", help="path of output file", default="out.pcapng"
+    )
+    parser.add_argument(
+        "-s",
+        "--sslkeylog",
+        help="path to sslkeylogfile",
+        default="tlexport/pcaps_und_keylogs/quic_pcaps/all_ciphersuites.log",
+    )
     # default False due to checksum offloading producing wrong checksums in Packet Capture
-    parser.add_argument("-c", "--checksumTest", help="enable for checking tcp Checksums",
-                        action=argparse.BooleanOptionalAction, default=False)
-    parser.add_argument("-l", "--pcaplegacy", help="enable flag if infile is in the pcap format",
-                        action=argparse.BooleanOptionalAction)
-    parser.add_argument("-m", "--mapports",
-                    action=MapPortsAction,
-                    nargs='*',
-                    default=argparse.SUPPRESS,  # Avoid setting mapports if not used
-                    help="map TLS-Ports to specific output ports, use this option when using more than one "
-                         "serverport <serverport:outputport>")
-    parser.add_argument("-d", "--debug", nargs='?', const="INFO", default="ERROR",
-                        help="Set the logging level (DEBUG, INFO, WARNING, ERROR)")
+    parser.add_argument(
+        "-c",
+        "--checksumTest",
+        help="enable for checking tcp Checksums",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+    )
+    parser.add_argument(
+        "-l",
+        "--pcaplegacy",
+        help="enable flag if infile is in the pcap format",
+        action=argparse.BooleanOptionalAction,
+    )
+    parser.add_argument(
+        "-m",
+        "--mapports",
+        action=MapPortsAction,
+        nargs="*",
+        default=argparse.SUPPRESS,  # Avoid setting mapports if not used
+        help="map TLS-Ports to specific output ports, use this option when using more than one "
+        "serverport <serverport:outputport>",
+    )
+    parser.add_argument(
+        "-d",
+        "--debug",
+        nargs="?",
+        const="INFO",
+        default="ERROR",
+        help="Set the logging level (DEBUG, INFO, WARNING, ERROR)",
+    )
 
-    parser.add_argument("-f", "--filter",
-                        help="filter log messages by file, add files you want to filter", nargs="+")
-    parser.add_argument('--version', action='version',version='TLExport v{version}'.format(version=__version__))
-    parser.add_argument("-g", "--greasy", help="ignore dtls, due to changes in the QUIC fixed bit, RFC 9287",
-                        action=argparse.BooleanOptionalAction, default=False)
-    parser.add_argument("-a", "--metadata", help="export metadata (e.g. TLS-Handshake data), this could be useful for some packet analyzers like Wireshark or Zeek", 
-                        action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument(
+        "-f",
+        "--filter",
+        help="filter log messages by file, add files you want to filter",
+        nargs="+",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version="TLExport v{version}".format(version=__version__),
+    )
+    parser.add_argument(
+        "-g",
+        "--greasy",
+        help="ignore dtls, due to changes in the QUIC fixed bit, RFC 9287",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+    )
+    parser.add_argument(
+        "-a",
+        "--metadata",
+        help="export metadata (e.g. TLS-Handshake data), this could be useful for some packet analyzers like Wireshark or Zeek",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+    )
     parser.set_defaults(keep_original_ports=True)
-
 
     return parser.parse_args()
 
@@ -76,20 +128,20 @@ def arg_parser_init():
 def get_port_map(parser: argparse.Namespace):
     """Gets ports from given arguments
 
-        :param parser: Namespace from *argparse* module
-        :type parser: argparse.Namespace
+    :param parser: Namespace from *argparse* module
+    :type parser: argparse.Namespace
 
-        :return: directory containing how server ports are mapped to the output ports
-        :rtype: dict
+    :return: directory containing how server ports are mapped to the output ports
+    :rtype: dict
     """
     port_map: dict = {}
     i: str
 
-    if 'mapports' not in parser or parser.mapports is None:
+    if "mapports" not in parser or parser.mapports is None:
         return port_map
 
     for i in parser.mapports:
-        i = i.replace(",", "") # if somebody is using a "," as seperator
+        i = i.replace(",", "")  # if somebody is using a "," as seperator
         split = i.split(":")
         server_port = int(split[0])
         output_port = int(split[1])
@@ -98,18 +150,25 @@ def get_port_map(parser: argparse.Namespace):
     return port_map
 
 
-
-def handle_packet(packet: Packet, args, keylog: bytes, sessions: list[Session], portmap: dict, keep_original_ports: bool, exp_meta: bool):
+def handle_packet(
+    packet: Packet,
+    args,
+    keylog: bytes,
+    sessions: list[Session],
+    portmap: dict,
+    keep_original_ports: bool,
+    exp_meta: bool,
+):
     """Matches packet to it's corresponding session, and initiates the handling of that packet in that session. Only used for *TLS over TCP* (NOT for QUIC, DTLS, etc.)
 
-        :param packet: packet that is handled
-        :param keylog: the secrets from the SSLKEYLOGFILE **AND** decryption secret blocks containing the connection secrets
-        :type packet: Packet
-        :type keylog: bytes
-        :param sessions: list of all sessions that are currently handled
-        :type sessions: list[Session]
-        :param portmap: directory containing how server ports are mapped to the output ports
-        :type portmap: dict
+    :param packet: packet that is handled
+    :param keylog: the secrets from the SSLKEYLOGFILE **AND** decryption secret blocks containing the connection secrets
+    :type packet: Packet
+    :type keylog: bytes
+    :param sessions: list of all sessions that are currently handled
+    :type sessions: list[Session]
+    :param portmap: directory containing how server ports are mapped to the output ports
+    :type portmap: dict
     """
 
     for session in sessions:
@@ -119,22 +178,28 @@ def handle_packet(packet: Packet, args, keylog: bytes, sessions: list[Session], 
 
     # if no matching session is found, a new one is created
     if packet.dport in server_ports or packet.sport in server_ports:
-        sessions.append(Session(packet, server_ports, keylog, portmap, keep_original_ports, exp_meta))
-        #sessions.append(Session(packet, server_ports, keylog, portmap, exp_meta))
+        sessions.append(
+            Session(
+                packet, server_ports, keylog, portmap, keep_original_ports, exp_meta
+            )
+        )
+        # sessions.append(Session(packet, server_ports, keylog, portmap, exp_meta))
 
 
-def handle_quic_packet(packet: Packet, keylog, quic_sessions: list[QuicSession], portmap):
+def handle_quic_packet(
+    packet: Packet, keylog, quic_sessions: list[QuicSession], portmap
+):
     """Matches packet to a session containg QUIC traffic, and initiates the handling of that packet in that session.
-        Only used QUIC traffic
+    Only used QUIC traffic
 
-        :param packet: packet that is handled
-        :type packet: Packet
-        :param keylog: the secrets from the SSLKEYLOGFILE **AND** decryption secret blocks containing the connection secrets
-        :type keylog: bytes
-        :param quic_sessions: list of all quic sessions that are currently handled
-        :type quic_sessions: list[Session]
-        :param portmap: directory containing how server ports are mapped to the output ports
-        :type portmap: dict
+    :param packet: packet that is handled
+    :type packet: Packet
+    :param keylog: the secrets from the SSLKEYLOGFILE **AND** decryption secret blocks containing the connection secrets
+    :type keylog: bytes
+    :param quic_sessions: list of all quic sessions that are currently handled
+    :type quic_sessions: list[Session]
+    :param portmap: directory containing how server ports are mapped to the output ports
+    :type portmap: dict
     """
     packet_payload = packet.tls_data
     header_type = get_header_type(packet_payload)
@@ -144,7 +209,7 @@ def handle_quic_packet(packet: Packet, keylog, quic_sessions: list[QuicSession],
 
     if header_type == QuicHeaderType.LONG:
         dcid_len = packet_payload[5]
-        dcid = packet_payload[6: 6 + dcid_len]
+        dcid = packet_payload[6 : 6 + dcid_len]
         quic_vers_num = int.from_bytes(packet_payload[1:5], "big", signed=False)
         match quic_vers_num:
             case 1:
@@ -163,12 +228,14 @@ def handle_quic_packet(packet: Packet, keylog, quic_sessions: list[QuicSession],
         else:
             # match by checking all known cid lengths for session
             for cid in session.client_cids | session.server_cids:
-                if cid == packet_payload[1:1 + len(cid)]:
+                if cid == packet_payload[1 : 1 + len(cid)]:
                     session.handle_packet(packet, cid, quic_version)
                     return
 
         # check matching ip address and port for zero length cids
-        if session.matches_session_dgram(packet.ip_src, packet.ip_dst, packet.sport, packet.dport):
+        if session.matches_session_dgram(
+            packet.ip_src, packet.ip_dst, packet.sport, packet.dport
+        ):
             session.handle_packet(packet, dcid, quic_version)
             return
 
@@ -176,7 +243,6 @@ def handle_quic_packet(packet: Packet, keylog, quic_sessions: list[QuicSession],
         new_session = QuicSession(packet, server_ports, keylog, portmap)
         quic_sessions.append(new_session)
         new_session.handle_packet(packet, dcid, quic_version)
-
 
 
 def run():
@@ -191,7 +257,6 @@ def run():
     logging.info(f"Mapping Ports: {portmap}")
 
     server_ports.extend([int(x) for x in args.serverports])
-    
 
     metadata: bool = args.metadata
 
@@ -207,15 +272,16 @@ def run():
         pcap_reader = dpkt.pcap.Reader(file)
     else:
         pcap_reader = Reader(file)
-    
- 
+
     print(f"[*] Checking for TLS traffic on these ports: {server_ports}")
 
     for ts, buf in pcap_reader:
         packet = Packet(buf, ts)
 
         if ts == -1:
-            keylog.extend(keylog_reader.get_keys_from_string(buf.decode('ascii')))  # adds secrets from decryption secret block to keylog
+            keylog.extend(
+                keylog_reader.get_keys_from_string(buf.decode("ascii"))
+            )  # adds secrets from decryption secret block to keylog
             continue
 
         if packet.tcp_packet:
@@ -232,8 +298,15 @@ def run():
                 logging.info(f"bad checksum discarded Packet {packet.get_params()}")
                 logging.info("")
             if packet.tcp_packet and checksum_test:
-                handle_packet(packet, args, keylog, sessions, portmap, keep_original_ports, exp_meta=metadata)
-
+                handle_packet(
+                    packet,
+                    args,
+                    keylog,
+                    sessions,
+                    portmap,
+                    keep_original_ports,
+                    exp_meta=metadata,
+                )
 
         elif packet.udp_packet:
             if len(packet.tls_data) == 0:

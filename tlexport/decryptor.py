@@ -5,14 +5,24 @@ from tlexport.tlsversion import TlsVersion
 from tlexport.tlsrecord import TlsRecord
 
 from enum import Enum
+
 # Suppress the deprecation warning from the cryptography module.
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     from cryptography.hazmat.primitives.ciphers import Cipher
     from cryptography.hazmat.primitives.ciphers.algorithms import AES, ChaCha20
-    from cryptography.hazmat.primitives.ciphers.aead import AESCCM, AESGCM, ChaCha20Poly1305
+    from cryptography.hazmat.primitives.ciphers.aead import (
+        AESCCM,
+        AESGCM,
+        ChaCha20Poly1305,
+    )
     from cryptography.hazmat.primitives.ciphers.modes import CBC
-    from cryptography.hazmat.decrepit.ciphers.algorithms import Camellia, TripleDES, IDEA, ARC4
+    from cryptography.hazmat.decrepit.ciphers.algorithms import (
+        Camellia,
+        TripleDES,
+        IDEA,
+        ARC4,
+    )
 
 
 class EncryptionType(Enum):
@@ -23,8 +33,20 @@ class EncryptionType(Enum):
 
 
 class Decryptor:
-    def __init__(self, bulk_alg, bulk_mode, mac_alg, keys, tls_version, key_length, mac_length, tag_length,
-                 block_length, extensions, compression) -> None:
+    def __init__(
+        self,
+        bulk_alg,
+        bulk_mode,
+        mac_alg,
+        keys,
+        tls_version,
+        key_length,
+        mac_length,
+        tag_length,
+        block_length,
+        extensions,
+        compression,
+    ) -> None:
 
         self.bulk_alg = bulk_alg
         self.bulk_mode = bulk_mode
@@ -55,9 +77,16 @@ class Decryptor:
             self.last_block_server = self.server_iv
             self.last_block_client = self.client_iv
 
-        if self.cipher_type == EncryptionType.Stream_Cipher and not self.bulk_alg == ChaCha20Poly1305:
-            self.server_cipher = Cipher(self.bulk_alg(self.server_key), mode=None).decryptor()
-            self.client_cipher = Cipher(self.bulk_alg(self.client_key), mode=None).decryptor()
+        if (
+            self.cipher_type == EncryptionType.Stream_Cipher
+            and not self.bulk_alg == ChaCha20Poly1305
+        ):
+            self.server_cipher = Cipher(
+                self.bulk_alg(self.server_key), mode=None
+            ).decryptor()
+            self.client_cipher = Cipher(
+                self.bulk_alg(self.client_key), mode=None
+            ).decryptor()
 
         if self.compression_method == 1:
             self.s_decompressor = zlib.decompressobj(wbits=0)
@@ -93,17 +122,26 @@ class Decryptor:
             self.client_application_key = keys["client_application_traffic_secret_0"]
             self.server_application_key = keys["server_application_traffic_secret_0"]
 
-            if keys["client_handshake_traffic_secret"] is None or keys[
-                    "client_handshake_iv"] is None:  # If Handshake Secrets are not available
+            if (
+                keys["client_handshake_traffic_secret"] is None
+                or keys["client_handshake_iv"] is None
+            ):  # If Handshake Secrets are not available
                 self.client_handshake_key = keys["client_application_traffic_secret_0"]
                 self.client_handshake_iv = keys["client_application_iv"]
-                logging.warning("Missing Client Handshake Keys, "
-                                "trying to decrypt with only application traffic secrets")
-            if keys["server_handshake_traffic_secret"] is None or keys["server_handshake_iv"] is None:
+                logging.warning(
+                    "Missing Client Handshake Keys, "
+                    "trying to decrypt with only application traffic secrets"
+                )
+            if (
+                keys["server_handshake_traffic_secret"] is None
+                or keys["server_handshake_iv"] is None
+            ):
                 self.server_handshake_key = keys["server_application_traffic_secret_0"]
                 self.server_handshake_iv = keys["server_application_iv"]
-                logging.warning("Missing Server Handshake Keys, "
-                                "trying to decrypt with only application traffic secrets")
+                logging.warning(
+                    "Missing Server Handshake Keys, "
+                    "trying to decrypt with only application traffic secrets"
+                )
 
             self.server_key = self.server_handshake_key
             self.client_key = self.client_handshake_key
@@ -123,23 +161,31 @@ class Decryptor:
         logging.info("decrypting TLS 1.3 AEAD Record")
 
         record: TlsRecord
-        associated_data = int.to_bytes(record.record_type, 1, 'big') + record.record_version + record.record_length
+        associated_data = (
+            int.to_bytes(record.record_type, 1, "big")
+            + record.record_version
+            + record.record_length
+        )
 
         logging.info(f"associated data: 0x{associated_data.hex()}")
         if isserver:
             key = self.server_key
             iv = self.server_iv
             seq = self.server_seq
-            logging.info(f"decrypting as Server: Key: 0x{key.hex()}, "
-                         f"Initialization Vector: 0x{iv.hex()} and Sequence Number: {seq}")
+            logging.info(
+                f"decrypting as Server: Key: 0x{key.hex()}, "
+                f"Initialization Vector: 0x{iv.hex()} and Sequence Number: {seq}"
+            )
         else:
             key = self.client_key
             iv = self.client_iv
             seq = self.client_seq
-            logging.info(f"decrypting as Client: Key: 0x{key.hex()}, "
-                         f"Initialization Vector: 0x{iv.hex()} and Sequence Number: {seq}")
+            logging.info(
+                f"decrypting as Client: Key: 0x{key.hex()}, "
+                f"Initialization Vector: 0x{iv.hex()} and Sequence Number: {seq}"
+            )
 
-        nonce = byte_xor(iv, int(seq).to_bytes(8, 'big'))
+        nonce = byte_xor(iv, int(seq).to_bytes(8, "big"))
         logging.info(f"generated Nonce: {nonce.hex()}")
         if self.bulk_alg == AESGCM:
             cipher = AESGCM(key)
@@ -168,22 +214,30 @@ class Decryptor:
         logging.info("decrypting TLS 1.3 Stream Cipher Record")
         logging.info("algorithm: ChaCha20")
         record: TlsRecord
-        associated_data = int.to_bytes(record.record_type, 1, 'big') + record.record_version + record.record_length
+        associated_data = (
+            int.to_bytes(record.record_type, 1, "big")
+            + record.record_version
+            + record.record_length
+        )
         logging.info(f"associated data: 0x{associated_data.hex()}")
         if isserver:
             key = self.server_key
             iv = self.server_iv
             seq = self.server_seq
-            logging.info(f"decrypting as Server: Key: 0x{key.hex()}, "
-                         f"Initialization Vector: 0x{iv.hex()} and Sequence Number: {seq}")
+            logging.info(
+                f"decrypting as Server: Key: 0x{key.hex()}, "
+                f"Initialization Vector: 0x{iv.hex()} and Sequence Number: {seq}"
+            )
         else:
             key = self.client_key
             iv = self.client_iv
             seq = self.client_seq
-            logging.info(f"decrypting as Client: Key: 0x{key.hex()}, "
-                         f"Initialization Vector: 0x{iv.hex()} and Sequence Number: {seq}")
+            logging.info(
+                f"decrypting as Client: Key: 0x{key.hex()}, "
+                f"Initialization Vector: 0x{iv.hex()} and Sequence Number: {seq}"
+            )
 
-        nonce = byte_xor(iv, int(seq).to_bytes(8, 'big'))
+        nonce = byte_xor(iv, int(seq).to_bytes(8, "big"))
         logging.info(f"generated Nonce: {nonce.hex()}")
         cipher = ChaCha20Poly1305(key)
 
@@ -215,7 +269,7 @@ class Decryptor:
         logging.info(f"ciphertext: {record.binary.hex()}")
         decrypted = cipher.update(bytes(record.binary))
 
-        plaintext = decrypted[0:-self.mac_length]
+        plaintext = decrypted[0 : -self.mac_length]
         logging.info(f"decrypted with mac: {decrypted}")
         logging.info(f"plaintext: {plaintext}")
         return plaintext
@@ -229,17 +283,23 @@ class Decryptor:
             key = self.server_key
             iv = self.server_iv
             seq = self.server_seq
-            logging.info(f"decrypting as Server: Key: 0x{key.hex()}, "
-                         f"Initialization Vector: 0x{iv.hex()} and Sequence Number: {seq}")
+            logging.info(
+                f"decrypting as Server: Key: 0x{key.hex()}, "
+                f"Initialization Vector: 0x{iv.hex()} and Sequence Number: {seq}"
+            )
         else:
             key = self.client_key
             iv = self.client_iv
             seq = self.client_seq
-            logging.info(f"decrypting as Client: Key: 0x{key.hex()}, "
-                         f"Initialization Vector: 0x{iv.hex()} and Sequence Number: {seq}")
+            logging.info(
+                f"decrypting as Client: Key: 0x{key.hex()}, "
+                f"Initialization Vector: 0x{iv.hex()} and Sequence Number: {seq}"
+            )
 
         ciphertext_len = len(ciphertext) - 8 - self.tag_length
-        associated_data = seq.to_bytes(8, 'big') + record.raw[:3] + ciphertext_len.to_bytes(2, 'big')
+        associated_data = (
+            seq.to_bytes(8, "big") + record.raw[:3] + ciphertext_len.to_bytes(2, "big")
+        )
         logging.info(f"associated data: 0x{associated_data.hex()}")
         ciphertext = record.binary[8:]
 
@@ -302,7 +362,7 @@ class Decryptor:
         logging.info(f"ciphertext: {ciphertext.hex()}")
 
         if self.encrypt_then_mac:
-            ciphertext = ciphertext[:-self.mac_length]
+            ciphertext = ciphertext[: -self.mac_length]
             logging.info(f"ciphertext without mac: {ciphertext.hex()}")
 
         cipher = Cipher(cipher_alg, CBC(iv))
@@ -312,12 +372,13 @@ class Decryptor:
         logging.info(f"decrypted ciphertext with padding {decrypted}")
 
         padding_length = decrypted[-1]
-        decrypted = decrypted[:-(padding_length + 1)]
+        decrypted = decrypted[: -(padding_length + 1)]
 
         if not self.encrypt_then_mac:
-            logging.info(f"decrypted ciphertext with mac, without padding: {ciphertext}")
-            decrypted = decrypted[:-self.mac_length]
-
+            logging.info(
+                f"decrypted ciphertext with mac, without padding: {ciphertext}"
+            )
+            decrypted = decrypted[: -self.mac_length]
 
         if self.compression_method == 0x01:
             logging.info(f"compressed plaintext: {decrypted}")
@@ -334,20 +395,28 @@ class Decryptor:
             key = self.server_key
             iv = self.server_iv
             seq = self.server_seq
-            logging.info(f"decrypting as Server: Key: 0x{key.hex()}, "
-                         f"Initialization Vector: 0x{iv.hex()} and Sequence Number: {seq}")
+            logging.info(
+                f"decrypting as Server: Key: 0x{key.hex()}, "
+                f"Initialization Vector: 0x{iv.hex()} and Sequence Number: {seq}"
+            )
         else:
             key = self.client_key
             iv = self.client_iv
             seq = self.client_seq
-            logging.info(f"decrypting as Client: Key: 0x{key.hex()}, "
-                         f"Initialization Vector: 0x{iv.hex()} and Sequence Number: {seq}")
+            logging.info(
+                f"decrypting as Client: Key: 0x{key.hex()}, "
+                f"Initialization Vector: 0x{iv.hex()} and Sequence Number: {seq}"
+            )
 
-        associated_data = seq.to_bytes(8, 'big') + record.record_type.to_bytes(1, 'big') + record.record_version + (
-                len(record.binary) - 16).to_bytes(2, 'big')
+        associated_data = (
+            seq.to_bytes(8, "big")
+            + record.record_type.to_bytes(1, "big")
+            + record.record_version
+            + (len(record.binary) - 16).to_bytes(2, "big")
+        )
         logging.info(f"associated data: {associated_data}")
 
-        nonce = byte_xor(iv, int(seq).to_bytes(8, 'big'))
+        nonce = byte_xor(iv, int(seq).to_bytes(8, "big"))
         logging.info(f"nonce: {nonce}")
 
         cipher = ChaCha20Poly1305(key)
@@ -375,13 +444,17 @@ class Decryptor:
         if isserver:
             key = self.server_key
             iv = self.last_block_server
-            logging.info(f"decrypting as Server: Key: 0x{key.hex()}, "
-                         f"Initialization Vector: 0x{iv.hex()}")
+            logging.info(
+                f"decrypting as Server: Key: 0x{key.hex()}, "
+                f"Initialization Vector: 0x{iv.hex()}"
+            )
         else:
             key = self.client_key
             iv = self.last_block_client
-            logging.info(f"decrypting as Client: Key: 0x{key.hex()}, "
-                         f"Initialization Vector: 0x{iv.hex()}")
+            logging.info(
+                f"decrypting as Client: Key: 0x{key.hex()}, "
+                f"Initialization Vector: 0x{iv.hex()}"
+            )
 
         cipher = Cipher(self.bulk_alg(key), CBC(iv))
         decryptor = cipher.decryptor()
@@ -390,7 +463,7 @@ class Decryptor:
 
         if self.encrypt_then_mac:
             logging.info(f"ciphertext with mac: {ciphertext}")
-            ciphertext = ciphertext[:-self.mac_length]
+            ciphertext = ciphertext[: -self.mac_length]
 
         logging.info(f"ciphertext: {ciphertext}")
 
@@ -398,12 +471,12 @@ class Decryptor:
         logging.info(f"decrypted: {decrypted}")
         padding_len = decrypted[-1]
 
-        plaintext = decrypted[:-(padding_len + 1)]
+        plaintext = decrypted[: -(padding_len + 1)]
 
         logging.info(f"decrypted without padding: {plaintext}")
 
         if not self.encrypt_then_mac:
-            plaintext = plaintext[:-self.mac_length]
+            plaintext = plaintext[: -self.mac_length]
         logging.info(f"plaintext: {plaintext}")
         if isserver:
             index = int(self.block_length / 8)
@@ -423,7 +496,10 @@ class Decryptor:
 
     def decrypt(self, record, isserver):
         # TLS 1.3 AEAD Cipher
-        if self.tls_version == TlsVersion.TLS13 and self.cipher_type == EncryptionType.AEAD:
+        if (
+            self.tls_version == TlsVersion.TLS13
+            and self.cipher_type == EncryptionType.AEAD
+        ):
             return self.decrypt_tls13_aead(record, isserver)
         # TLS 1.3 Steam Cipher
         elif self.tls_version == TlsVersion.TLS13:
@@ -436,27 +512,43 @@ class Decryptor:
             return self.decrypt_generic_stream_cipher(record, isserver)
         elif self.cipher_type == EncryptionType.AEAD:
             return self.decrypt_tls12_aead(record, isserver)
-        elif self.cipher_type == EncryptionType.Block_Cipher and self.tls_version in [TlsVersion.TLS12,
-                                                                                      TlsVersion.TLS11]:
+        elif self.cipher_type == EncryptionType.Block_Cipher and self.tls_version in [
+            TlsVersion.TLS12,
+            TlsVersion.TLS11,
+        ]:
             return self.decrypt_tls12_block_cipher(record, isserver)
-        elif self.cipher_type == EncryptionType.Block_Cipher and self.tls_version in [TlsVersion.TLS10,
-                                                                                      TlsVersion.SSL30]:
+        elif self.cipher_type == EncryptionType.Block_Cipher and self.tls_version in [
+            TlsVersion.TLS10,
+            TlsVersion.SSL30,
+        ]:
             return self.decrypt_last_block_iv_cbc(record, isserver)
 
     def update_keys(self, isserver):
         if isserver:
             logging.info("")
-            logging.info("Updating keys from handshake keys to application keys for server")
-            logging.info(f"Key: 0x{self.server_handshake_key.hex()} -> 0x{self.server_application_key.hex()}")
-            logging.info(f"Iv: 0x{self.server_handshake_iv.hex()} -> 0x{self.server_application_iv.hex()}")
+            logging.info(
+                "Updating keys from handshake keys to application keys for server"
+            )
+            logging.info(
+                f"Key: 0x{self.server_handshake_key.hex()} -> 0x{self.server_application_key.hex()}"
+            )
+            logging.info(
+                f"Iv: 0x{self.server_handshake_iv.hex()} -> 0x{self.server_application_iv.hex()}"
+            )
             self.server_key = self.server_application_key
             self.server_iv = self.server_application_iv
             self.server_seq = 0
         else:
             logging.info("")
-            logging.info("Updating keys from handshake keys to application keys for client")
-            logging.info(f"Key: 0x{self.client_handshake_key.hex()} -> 0x{self.client_application_key.hex()}")
-            logging.info(f"Iv: 0x{self.client_handshake_iv.hex()} -> 0x{self.client_application_iv.hex()}")
+            logging.info(
+                "Updating keys from handshake keys to application keys for client"
+            )
+            logging.info(
+                f"Key: 0x{self.client_handshake_key.hex()} -> 0x{self.client_application_key.hex()}"
+            )
+            logging.info(
+                f"Iv: 0x{self.client_handshake_iv.hex()} -> 0x{self.client_application_iv.hex()}"
+            )
             self.client_key = self.client_application_key
             self.client_iv = self.client_application_iv
             self.client_seq = 0
@@ -476,12 +568,9 @@ def byte_xor(a, b):
     diff = len(a) - len(b)
     b_padded = bytes(diff) + b
 
-    xor_out = bytearray(b'')
+    xor_out = bytearray(b"")
 
     for i in range(len(a)):
         xor_out.append(a[i] ^ b_padded[i])
 
     return xor_out
-
-
-
